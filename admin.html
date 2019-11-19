@@ -236,6 +236,10 @@
                 robots[data.serial] = null;
                 const row = document.querySelector('#tbody tr[data-serial="' + data.serial + '"]');
                 row.remove();
+            },
+            ERROR: function (data) {
+                console.log(data);
+                alert(data.message);
             }
         };
 
