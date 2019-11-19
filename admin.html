@@ -91,7 +91,7 @@
     </div>
     <div id="content">
 
-        <table align="center">
+        <table style="margin: auto">
             <thead>
             <tr>
                 <th>Start #</th>
@@ -112,26 +112,22 @@
             <input type="text" id="ip" value="ws://192.168.1.200:8888/ws">
             <input type="button" id="btn-connect" value="Connect">
         </div>
-        <div id="control" class="block">
-            <input type="button" class="btn-command" id="btn-ready" value="READY" data-command="READY"
-                   style="display: none">
-            <input type="button" class="btn-command" id="btn-steady" value="STEADY" data-command="STEADY"
-                   style="display: none">
-            <input type="button" class="btn-command" id="btn-go" value="GO" data-command="RUNNING"
-                   style="display: none">
-            <input type="button" class="btn-command" id="btn-finish" value="FINISH" data-command="FINISH"
-                   style="display: none">
+        <div id="control" class="block" style="display: none">
+            <input type="button" class="btn-command" id="btn-ready" value="READY" data-command="READY">
+            <input type="button" class="btn-command" id="btn-steady" value="STEADY" data-command="STEADY">
+            <input type="button" class="btn-command" id="btn-go" value="GO" data-command="RUNNING">
+            <input type="button" class="btn-command" id="btn-finish" value="FINISH" data-command="FINISH">
         </div>
     </div>
 </div>
 <script>
     (function () {
-        var socket;
-        var raceState = 'UNKNOWN';
-        var raceTime = 0;
-        var robots = {};
+        let socket;
+        let raceState = 'UNKNOWN';
+        let raceTime = 0;
+        const robots = {};
 
-        var updateInterval = 9;
+        const updateInterval = 9;
         setInterval(function () {
             if (raceState === 'RUNNING') {
                 raceTime += updateInterval;
@@ -139,44 +135,25 @@
             }
         }, updateInterval);
 
-        var wsReconnectTimeoutId = null;
+        let wsReconnectTimeoutId = null;
 
         document.querySelector('#btn-connect').addEventListener('click', function () {
             createConnection();
         });
 
-        var buttons = document.querySelectorAll('.btn-command');
-        for (var i = 0; i < buttons.length; i++) {
+        const buttons = document.querySelectorAll('.btn-command');
+        for (let i = 0; i < buttons.length; i++) {
             buttons[i].addEventListener('click', function (event) {
-                var state = event.target.dataset.command;
-                var data = {'type': 'COMMAND', 'state': state};
+                const state = event.target.dataset.command;
+                const data = {'type': 'COMMAND', 'state': state};
                 socket && socket.send(JSON.stringify(data));
             });
         }
 
-        document.querySelector('#btn-ready').addEventListener('click', function (event) {
-            event.target.setAttribute('style', 'display:none');
-            document.querySelector('#btn-steady').setAttribute('style', 'display:visible');
-        });
-        document.querySelector('#btn-steady').addEventListener('click', function (event) {
-            event.target.setAttribute('style', 'display:none');
-            document.querySelector('#btn-go').setAttribute('style', 'display:visible');
-        });
-        document.querySelector('#btn-go').addEventListener('click', function (event) {
-            event.target.setAttribute('style', 'display:none');
-            document.querySelector('#btn-finish').setAttribute('style', 'display:visible');
-        });
-        document.querySelector('#btn-finish').addEventListener('click', function (event) {
-            event.target.setAttribute('style', 'display:none');
-            setTimeout(function () {
-                document.querySelector('#btn-ready').setAttribute('style', 'display:visible');
-            }, 5000);
-        });
+        const onClickNum = function (event) {
+            const input = event.target;
 
-        var onClickNum = function (event) {
-            var input = event.target;
-
-            var data;
+            let data;
             if (input.dataset.type === 'LAP_MAN') {
                 data = {
                     'type': 'LAP_MAN',
@@ -202,27 +179,20 @@
             }
         };
 
-        var types = {
+        const types = {
             STATE: function (data) {
                 raceState = data.state;
                 document.querySelector('#btn-steady').setAttribute('style', 'display: none');
                 document.querySelector('#btn-go').setAttribute('style', 'display: none');
                 document.querySelector('#btn-finish').setAttribute('style', 'display: none');
                 document.querySelector('#btn-ready').setAttribute('style', 'display: none');
-                switch (raceState) {
-                    case 'READY':
-                        document.querySelector('#btn-steady').setAttribute('style', 'display: visible');
-                        break;
-                    case 'STEADY':
-                        document.querySelector('#btn-go').setAttribute('style', 'display: visible');
-                        break;
-                    case 'RUNNING':
-                        document.querySelector('#btn-finish').setAttribute('style', 'display: visible');
-                        break;
-                    case 'FINISH':
-                        document.querySelector('#btn-ready').setAttribute('style', 'display: visible');
-                        break;
-                }
+                const nextButtonIds = {
+                    'READY': '#btn-steady',
+                    'STEADY': '#btn-go',
+                    'RUNNING': '#btn-finish',
+                    'FINISH': '#btn-ready'
+                };
+                document.querySelector(nextButtonIds[raceState]).setAttribute('style', 'display: visible');
                 document.querySelector('#race-state').innerHTML = raceState;
             },
             TIME: function (data) {
@@ -230,15 +200,15 @@
             },
             LAP: function (data) {
                 robots[data.serial] = data;
-                var row = document.querySelector('#tbody tr[data-serial="' + data.serial + '"]');
+                let row = document.querySelector('#tbody tr[data-serial="' + data.serial + '"]');
                 if (row === null) {
-                    var tbody = document.querySelector('#tbody');
+                    const tbody = document.querySelector('#tbody');
                     tbody.innerHTML += '<tr data-serial="' + data.serial + '"></tr>';
                     row = document.querySelector('#tbody tr[data-serial="' + data.serial + '"]');
                 }
 
-                var buttons = document.querySelectorAll('#content input');
-                for (var i = 0; i < buttons.length; i++) {
+                let buttons = document.querySelectorAll('#content input');
+                for (let i = 0; i < buttons.length; i++) {
                     buttons[i].removeEventListener('click', onClickNum);
                 }
 
@@ -257,47 +227,48 @@
                 ;
 
                 buttons = document.querySelectorAll('#content input[type="button"]');
-                for (i = 0; i < buttons.length; i++) {
+                for (let i = 0; i < buttons.length; i++) {
                     buttons[i].addEventListener('click', onClickNum);
                 }
 
             },
             ROBOT_REMOVE: function (data) {
                 robots[data.serial] = null;
-                var row = document.querySelector('#tbody tr[data-serial="' + data.serial + '"]');
+                const row = document.querySelector('#tbody tr[data-serial="' + data.serial + '"]');
                 row.remove();
             }
         };
 
         function msToTime(s) {
-            var ms = s % 1000;
+            let ms = s % 1000;
             s = (s - ms) / 1000;
             if (ms < 10) ms = '00' + ms;
             else if (ms < 100) ms = '0' + ms;
 
-            var secs = s % 60;
+            let secs = s % 60;
             s = (s - secs) / 60;
             if (secs < 10) secs = '0' + secs;
 
-            var mins = s % 60;
-            var hrs = (s - mins) / 60;
+            const mins = s % 60;
+            const hrs = (s - mins) / 60;
 
-            var result = mins + ':' + secs + '.' + ms;
+            let result = mins + ':' + secs + '.' + ms;
             if (hrs > 0) result = hrs + 'h ' + result;
             return result;
         }
 
         function createConnection() {
-            var url = document.querySelector('#ip').value;
+            const url = document.querySelector('#ip').value;
             socket = new WebSocket(url);
 
             function onOpen(event) {
                 console.log('connected', event);
 
-                document.querySelector('#config').setAttribute('style', 'display: none');
+                document.querySelector('#control').setAttribute('style', 'display: visible');
 
-                var buttons = document.querySelectorAll('#config input');
-                for (var i = 0; i < buttons.length; i++) {
+                document.querySelector('#config').setAttribute('style', 'display: none');
+                const buttons = document.querySelectorAll('#config input');
+                for (let i = 0; i < buttons.length; i++) {
                     buttons[i].toggleAttribute('disabled');
                 }
 
@@ -319,7 +290,7 @@
             }
 
             function onMessage(event) {
-                var data;
+                let data;
 
                 try {
                     data = JSON.parse(event.data);
