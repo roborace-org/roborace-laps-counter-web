@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+    <link href="https://fonts.googleapis.com/css?family=Khand|Overpass+Mono" rel="stylesheet">
+    <title>Roborace Laps Counter</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+        }
+
+        #root {
+            font-family: Khand, sans-serif;
+            height: 100vh;
+            background: #3c4a61;
+            color: white;
+        }
+
+        #header {
+            flex-grow: 0;
+            font-size: 6vh;
+            text-align: center;
+        }
+
+        #menu {
+            flex-grow: 0;
+            font-size: 3.5vw;
+            display: flex;
+            justify-content: space-between;
+            padding: 0 15vw;
+        }
+
+        #race-state {
+            color: #ebd16a;
+        }
+
+        #stopwatch {
+            margin-left: 20px;
+            font-family: 'Overpass Mono', monospace;
+        }
+
+        #buttons {
+            font-size: 4vh;
+            text-align: center;
+            padding: 1vw 0;
+            position: absolute;
+            bottom: 0;
+            width: 100vw;
+        }
+
+        .block {
+            display: inline-block;
+            padding: 0 10px
+        }
+
+        input {
+            font-family: Khand, sans-serif;
+            font-size: 4vh;
+        }
+
+        #content table {
+            border-collapse: collapse;
+        }
+
+        #content th, td {
+            font-size: 3vw;
+            padding: 0.3vh 0.5vw;
+            margin: 0;
+            border: 1px solid #d5d5d5;
+            text-align: center;
+        }
+
+        #content input {
+            margin: 0 0.5vw;
+            padding: 0 1vw;
+            font-size: 2vw;
+        }
+
+    </style>
+</head>
+<body>
+<div id="root">
+    <div id="header">Roborace Laps Counter</div>
+    <div id="menu">
+        <!--<div>Laps: 25</div>-->
+        <div>State: <span id="race-state">NOT CONNECTED</span></div>
+        <div>Race Time: <span id="stopwatch">0:00.000</span></div>
+    </div>
+    <div id="content">
+
+        <table align="center">
+            <thead>
+            <tr>
+                <th>Start #</th>
+                <th>Serial</th>
+                <th>Control</th>
+                <th>Name</th>
+                <th>Place</th>
+                <th>Laps</th>
+                <th>Time</th>
+            </tr>
+            </thead>
+            <tbody id="tbody"></tbody>
+        </table>
+
+    </div>
+    <div id="buttons">
+        <div id="config" class="block">
+            <input type="text" id="ip" value="ws://192.168.1.200:8888/ws">
+            <input type="button" id="btn-connect" value="Connect">
+        </div>
+        <div id="control" class="block">
+            <input type="button" class="btn-command" id="btn-ready" value="READY" data-command="READY"
+                   style="display: none">
+            <input type="button" class="btn-command" id="btn-steady" value="STEADY" data-command="STEADY"
+                   style="display: none">
+            <input type="button" class="btn-command" id="btn-go" value="GO" data-command="RUNNING"
+                   style="display: none">
+            <input type="button" class="btn-command" id="btn-finish" value="FINISH" data-command="FINISH"
+                   style="display: none">
+        </div>
+    </div>
+</div>
+<script>
+    (function () {
+        var socket;
+        var raceState = 'UNKNOWN';
+        var raceTime = 0;
+        var robots = {};
+
+        var updateInterval = 9;
+        setInterval(function () {
+            if (raceState === 'RUNNING') {
+                raceTime += updateInterval;
+                document.querySelector('#stopwatch').innerHTML = msToTime(raceTime);
+            }
+        }, updateInterval);
+
+        var wsReconnectTimeoutId = null;
+
+        document.querySelector('#btn-connect').addEventListener('click', function () {
+            createConnection();
+        });
+
+        var buttons = document.querySelectorAll('.btn-command');
+        for (var i = 0; i < buttons.length; i++) {
+            buttons[i].addEventListener('click', function (event) {
+                var state = event.target.dataset.command;
+                var data = {'type': 'COMMAND', 'state': state};
+                socket && socket.send(JSON.stringify(data));
+            });
+        }
+
+        document.querySelector('#btn-ready').addEventListener('click', function (event) {
+            event.target.setAttribute('style', 'display:none');
+            document.querySelector('#btn-steady').setAttribute('style', 'display:visible');
+        });
+        document.querySelector('#btn-steady').addEventListener('click', function (event) {
+            event.target.setAttribute('style', 'display:none');
+            document.querySelector('#btn-go').setAttribute('style', 'display:visible');
+        });
+        document.querySelector('#btn-go').addEventListener('click', function (event) {
+            event.target.setAttribute('style', 'display:none');
+            document.querySelector('#btn-finish').setAttribute('style', 'display:visible');
+        });
+        document.querySelector('#btn-finish').addEventListener('click', function (event) {
+            event.target.setAttribute('style', 'display:none');
+            setTimeout(function () {
+                document.querySelector('#btn-ready').setAttribute('style', 'display:visible');
+            }, 5000);
+        });
+
+        var onClickNum = function (event) {
+            var input = event.target;
+
+            var data;
+            if (input.dataset.type === 'LAP_MAN') {
+                data = {
+                    'type': 'LAP_MAN',
+                    'serial': parseInt(input.dataset.serial),
+                    'laps': parseInt(input.value)
+                };
+            } else if (input.dataset.type === 'ROBOT_REMOVE') {
+                if (confirm("Do you really want to remove robot?")) {
+                    data = {
+                        'type': 'ROBOT_REMOVE',
+                        'serial': parseInt(input.dataset.serial)
+                    };
+                }
+            } else if (input.dataset.type === 'ROBOT_EDIT') {
+                data = {
+                    'type': 'ROBOT_EDIT',
+                    'serial': parseInt(input.dataset.serial),
+                    'name': input.previousSibling.value
+                };
+            }
+            if (data !== undefined) {
+                socket.send(JSON.stringify(data));
+            }
+        };
+
+        var types = {
+            STATE: function (data) {
+                raceState = data.state;
+                document.querySelector('#btn-steady').setAttribute('style', 'display: none');
+                document.querySelector('#btn-go').setAttribute('style', 'display: none');
+                document.querySelector('#btn-finish').setAttribute('style', 'display: none');
+                document.querySelector('#btn-ready').setAttribute('style', 'display: none');
+                switch (raceState) {
+                    case 'READY':
+                        document.querySelector('#btn-steady').setAttribute('style', 'display: visible');
+                        break;
+                    case 'STEADY':
+                        document.querySelector('#btn-go').setAttribute('style', 'display: visible');
+                        break;
+                    case 'RUNNING':
+                        document.querySelector('#btn-finish').setAttribute('style', 'display: visible');
+                        break;
+                    case 'FINISH':
+                        document.querySelector('#btn-ready').setAttribute('style', 'display: visible');
+                        break;
+                }
+                document.querySelector('#race-state').innerHTML = raceState;
+            },
+            TIME: function (data) {
+                raceTime = data.time;
+            },
+            LAP: function (data) {
+                robots[data.serial] = data;
+                var row = document.querySelector('#tbody tr[data-serial="' + data.serial + '"]');
+                if (row === null) {
+                    var tbody = document.querySelector('#tbody');
+                    tbody.innerHTML += '<tr data-serial="' + data.serial + '"></tr>';
+                    row = document.querySelector('#tbody tr[data-serial="' + data.serial + '"]');
+                }
+
+                var buttons = document.querySelectorAll('#content input');
+                for (var i = 0; i < buttons.length; i++) {
+                    buttons[i].removeEventListener('click', onClickNum);
+                }
+
+                row.innerHTML =
+                    '<td>' + data.num + '</td>' +
+                    '<td>' + data.serial + '</td>' +
+                    '<td>' +
+                    '<input type="button" value="+1" data-type="LAP_MAN" data-serial="' + data.serial + '">' +
+                    '<input type="button" value="-1" data-type="LAP_MAN" data-serial="' + data.serial + '">' +
+                    '<input type="button" value="rm" data-type="ROBOT_REMOVE" data-serial="' + data.serial + '">' +
+                    '</td>' +
+                    '<td><input type="text" value="' + data.name + '"><input type="button" value="ok" data-type="ROBOT_EDIT" data-serial="' + data.serial + '"></td>' +
+                    '<td>' + data.place + '</td>' +
+                    '<td>' + data.laps + '</td>' +
+                    '<td>' + msToTime(data.time) + '</td>'
+                ;
+
+                buttons = document.querySelectorAll('#content input[type="button"]');
+                for (i = 0; i < buttons.length; i++) {
+                    buttons[i].addEventListener('click', onClickNum);
+                }
+
+            },
+            ROBOT_REMOVE: function (data) {
+                robots[data.serial] = null;
+                var row = document.querySelector('#tbody tr[data-serial="' + data.serial + '"]');
+                row.remove();
+            }
+        };
+
+        function msToTime(s) {
+            var ms = s % 1000;
+            s = (s - ms) / 1000;
+            if (ms < 10) ms = '00' + ms;
+            else if (ms < 100) ms = '0' + ms;
+
+            var secs = s % 60;
+            s = (s - secs) / 60;
+            if (secs < 10) secs = '0' + secs;
+
+            var mins = s % 60;
+            var hrs = (s - mins) / 60;
+
+            var result = mins + ':' + secs + '.' + ms;
+            if (hrs > 0) result = hrs + 'h ' + result;
+            return result;
+        }
+
+        function createConnection() {
+            var url = document.querySelector('#ip').value;
+            socket = new WebSocket(url);
+
+            function onOpen(event) {
+                console.log('connected', event);
+
+                document.querySelector('#config').setAttribute('style', 'display: none');
+
+                var buttons = document.querySelectorAll('#config input');
+                for (var i = 0; i < buttons.length; i++) {
+                    buttons[i].toggleAttribute('disabled');
+                }
+
+                socket.send(JSON.stringify({'type': 'LAPS'}));
+            }
+
+            function onClose(event) {
+                console.log('disconnected', event);
+
+                removeListeners();
+                reconnect();
+            }
+
+            function onError(event) {
+                console.error('error', event);
+
+                removeListeners();
+                reconnect();
+            }
+
+            function onMessage(event) {
+                var data;
+
+                try {
+                    data = JSON.parse(event.data);
+                    console.log(data);
+                } catch (error) {
+                    console.error('Message should have JSON format');
+                    return;
+                }
+
+                types[data.type] && types[data.type](data);
+            }
+
+            function removeListeners() {
+                socket.removeEventListener('open', onOpen);
+                socket.removeEventListener('close', onClose);
+                socket.removeEventListener('error', onError);
+                socket.removeEventListener('message', onMessage);
+            }
+
+            socket.addEventListener('open', onOpen);
+            socket.addEventListener('close', onClose);
+            socket.addEventListener('error', onError);
+            socket.addEventListener('message', onMessage);
+        }
+
+        function reconnect() {
+            if (wsReconnectTimeoutId) {
+                clearTimeout(wsReconnectTimeoutId);
+            }
+
+            console.log('attempt to reconnect');
+
+            wsReconnectTimeoutId = setTimeout(createConnection, 1000);
+        }
+    })();
+</script>
+</body>
+</html>
