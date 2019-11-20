@@ -10,13 +10,13 @@
         body {
             margin: 0;
             padding: 0;
+            font-family: Khand, sans-serif;
+            background: #3c4a61;
+            color: white;
         }
 
         #root {
-            font-family: Khand, sans-serif;
             height: 100vh;
-            background: #3c4a61;
-            color: white;
         }
 
         #header {
@@ -46,7 +46,7 @@
             font-size: 4vh;
             text-align: center;
             padding: 1vw 0;
-            position: absolute;
+            /*position: absolute;*/
             bottom: 0;
             width: 100vw;
         }
@@ -66,7 +66,7 @@
         }
 
         #content th, td {
-            font-size: 3vw;
+            font-size: 2.5vw;
             padding: 0.3vh 0.5vw;
             margin: 0;
             border: 1px solid #d5d5d5;
@@ -101,6 +101,8 @@
                 <th>Place</th>
                 <th>Laps</th>
                 <th>Time</th>
+                <th>Best Lap</th>
+                <th>Last Lap</th>
             </tr>
             </thead>
             <tbody id="tbody"></tbody>
@@ -223,7 +225,9 @@
                     '<td><input type="text" value="' + data.name + '"><input type="button" value="ok" data-type="ROBOT_EDIT" data-serial="' + data.serial + '"></td>' +
                     '<td>' + data.place + '</td>' +
                     '<td>' + data.laps + '</td>' +
-                    '<td>' + msToTime(data.time) + '</td>'
+                    '<td>' + msToTime(data.time) + '</td>' +
+                    '<td>' + msToTime(data.bestLapTime) + '</td>' +
+                    '<td>' + msToTime(data.lastLapTime) + '</td>'
                 ;
 
                 buttons = document.querySelectorAll('#content input[type="button"]');
@@ -244,6 +248,8 @@
         };
 
         function msToTime(s) {
+            if (s === undefined) return '';
+            if (s === 0) return '0.0';
             let ms = s % 1000;
             s = (s - ms) / 1000;
             if (ms < 10) ms = '00' + ms;
