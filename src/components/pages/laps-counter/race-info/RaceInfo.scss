@@ -1,0 +1,30 @@
+.laps-counter {
+  &-info {
+    margin-bottom: 2rem;
+    display: flex;
+    font-size: 1.5rem;
+    .title {
+      margin-right: 1rem;
+    }
+    .value {
+      text-transform: uppercase;
+      font-weight: bold;
+      font-size: 3rem;
+      line-height: normal;
+    }
+  }
+  &-time {
+    margin-bottom: 2rem;
+    display: flex;  
+    font-size: 1.5rem;
+    .title {
+      margin-right: 1rem;
+    }
+    .value {
+      text-transform: uppercase;
+      font-weight: bold;
+      font-size: 3rem;
+      line-height: normal;
+    }
+  }
+}
