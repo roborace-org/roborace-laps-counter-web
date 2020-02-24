@@ -62,7 +62,7 @@ class HeaderModal extends React.Component<IAppProps, IAppState> {
   }
 
   componentDidMount() {
-    this.props.connectSocket("ws://smarthata.org:8888/ws");
+    this.props.connectSocket("ws://laps.roborace.org:8888/ws");
   }
   public render() {
     return (
