@@ -7,7 +7,7 @@ export const msToTime = (s: number) => {
   s = (s - secs) / 60;
   const mins = s % 60;
   const hrs = (s - mins) / 60;
-  const result = `${formatDigits(mins)}:${formatDigits(secs)}:${formatDigits(ms, 3)}`;
+  const result = `${formatDigits(mins)}:${formatDigits(secs)}.${formatDigits(ms, 3)}`;
 
   if (hrs > 0) {
     return `${hrs}h ${result}`;
