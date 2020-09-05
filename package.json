@@ -13,7 +13,7 @@
     "@types/socket.io-client": "^1.4.32",
     "antd": "^3.16.2",
     "md5": "^2.2.1",
-    "node-sass": "^4.11.0",
+    "node-sass": "^4.13.1",
     "react": "16.8.5",
     "react-dom": "^16.8.6",
     "react-flip-move": "^3.0.3",
