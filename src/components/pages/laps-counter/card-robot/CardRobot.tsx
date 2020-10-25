@@ -11,15 +11,17 @@ import RobotSerial from './RobotSerial';
 
 export interface IAppProps {
   robot: IRobot;
+  isSingle? : Boolean;
 }
 
 export class CardRobot extends Component<IAppProps> {
   render() {
     const { robot } = this.props;
+    console.log(this.props.isSingle);
     return (
       <div className="card-robot race-table-row" >
         <RobotPlace place={robot.place} />
-        <RobotName robot={robot} />
+        <RobotName robot={robot} isSingle={this.props.isSingle}/>
         <RobotSerial serial={robot.serial} />
         <RobotLaps laps={robot.laps} />
         <RobotTime time={robot.time} />
