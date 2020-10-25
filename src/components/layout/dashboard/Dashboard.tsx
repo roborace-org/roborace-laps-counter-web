@@ -7,6 +7,7 @@ import Header from '../../common/header/Header';
 import Footer from '../../common/footer/Footer';
 import LapsCounter from '../../../containers/laps-counter/LapsCounter';
 import Login from '../../pages/login/Login';
+import SingleCounter from '../../pages/single-counter/SingleCounter';
 
 
 export interface IHomeProps { }
@@ -21,6 +22,7 @@ class Dashboard extends Component<IHomeProps, IHomeState> {
           <div className="main-container">
             <Switch>
               <Route exact path="/" component={LapsCounter} />
+              <Route exact path="/single/:serial" component={SingleCounter} />
               <Route exact path="/login" component={Login} />
               <Route render={() => <h1>Pаge not Found</h1>} />
             </Switch>

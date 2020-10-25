@@ -12,13 +12,13 @@ function hasErrors(fieldsError) {
 
 interface RobotSerialProps {
   robot: IRobot;
+  isSingle? : Boolean;
 }
 class RobotName extends PureComponent<RobotSerialProps, any> {
   public render() {
     const { robot, isAdmin } = this.props as any;
-
     const content = isAdmin ? (
-      <RobotNameAdminForm robot={robot} />
+      <RobotNameAdminForm robot={robot} isSingle={this.props.isSingle}/>
     ) : (
       <RobotNameUser robot={robot} />
     );
@@ -44,9 +44,27 @@ const RobotNameUser: FunctionComponent<RobotSerialProps> = props => {
 
 class RobotNameAdmin extends PureComponent<any> {
   removeRobot = () => {
+    if (confirm('Do you whant delete this robot => ' + this.props.robot.name+ ' : ' + this.props.robot.serial )) {
+      this.props.sendMessage({
+        serial: this.props.robot.serial,
+        type: "ROBOT_REMOVE"
+      });
+    }
+  };
+
+  addLap = () => {
     this.props.sendMessage({
       serial: this.props.robot.serial,
-      type: "ROBOT_REMOVE"
+      type: "LAP_MAN",
+      laps: 1
+    });
+  };
+
+  removeLap = () => {
+    this.props.sendMessage({
+      serial: this.props.robot.serial,
+      type: "LAP_MAN",
+      laps: -1
     });
   };
 
@@ -65,7 +83,7 @@ class RobotNameAdmin extends PureComponent<any> {
 
   public render() {
     const { getFieldsError } = this.props.form;
-
+    
     return (
       <div>
         <Form layout="inline" onSubmit={this.handleSubmit}>
@@ -81,19 +99,37 @@ class RobotNameAdmin extends PureComponent<any> {
               }
             ]}
           />
+          {this.props.isSingle != true &&
+            <Form.Item>
+              <Button
+                type="primary"
+                htmlType="submit"
+                disabled={hasErrors(getFieldsError())}
+              >
+                save
+              </Button>
+            </Form.Item>
+          }
+        </Form>
+        <Form layout="inline">
+          {this.props.isSingle != true && 
+            <Form.Item>
+              <Button type="danger" onClick={this.removeRobot}>
+                remove
+              </Button>
+            </Form.Item>
+          }
           <Form.Item>
-            <Button
-              type="primary"
-              htmlType="submit"
-              disabled={hasErrors(getFieldsError())}
-            >
-              save
+            <Button type="primary" onClick={this.addLap}>
+              + 1
+            </Button>
+          </Form.Item>
+          <Form.Item>
+            <Button type="primary" onClick={this.removeLap}>
+              - 1
             </Button>
           </Form.Item>
         </Form>
-        <Button type="danger" onClick={this.removeRobot}>
-          remove
-        </Button>
       </div>
     );
   }

@@ -9,15 +9,16 @@ import { CardRobot } from '../card-robot/CardRobot';
 
 interface IAppProps {
   robots: IRobot[];
+  isSingle?: Boolean;
+  isAdmin: Boolean;
 }
 
 const RaceTable: FunctionComponent<IAppProps> = (props) => {
-  const { robots } = props;
+  const { robots, isAdmin } = props;
   const comparator = cmp().map(r => r.place).asc();
-
-  const robotsCards = (robots.sort(comparator)
+  const robotsCards = ((isAdmin ? robots : robots.sort(comparator))
     .map(robot => (
-      <CardRobot key={robot.serial} robot={robot} />
+      <CardRobot key={robot.serial} robot={robot} isSingle={props.isSingle}/>
     )));
 
   let tableBody = (
@@ -46,10 +47,10 @@ const RaceTable: FunctionComponent<IAppProps> = (props) => {
   );
 };
 
-export default RaceTable;
+// export default RaceTable;
 
-// const mapStateToProps = (state: any) => ({ robots: state.race.robots });
+const mapStateToProps = (state: any) => ({ isAdmin : state.race.isAdmin });
 
-// export default connect(
-//   mapStateToProps,
-// )(RaceTable)
+export default connect(
+  mapStateToProps,
+)(RaceTable)
