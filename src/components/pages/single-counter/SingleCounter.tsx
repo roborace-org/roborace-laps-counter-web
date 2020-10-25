@@ -15,8 +15,6 @@ class SingleCounter extends Component<any, IAppState> {
 
     public render() {
         const myCurrentRobot = this.props.robots.find(r => r.serial === +this.props.match.params.serial)
-        console.log(myCurrentRobot);
-        console.log(this.props.isSingle);
         return (
             <Form layout="inline">
                 { myCurrentRobot && <RaceTable robots={[myCurrentRobot]} isSingle={true}/> }
