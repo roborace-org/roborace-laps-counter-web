@@ -7,6 +7,7 @@ export const RACE_TIME = "ROBORACE/TIME";
 export const RACE_ROBOT = "ROBORACE/ROBOT";
 export const REMOVE_ROBOT = "ROBORACE/REMOVE_ROBOT";
 export const ADMIN_STATE = "ROBORACE/ADMIN_STATE";
+export const MANAGER_STATE = "ROBORACE/MANAGER_STATE";
 
 export const setRaceState = (
   status: IRaceState["status"],
@@ -29,6 +30,11 @@ export const removeRobor = (serial: IRobot["serial"], dispatch: Dispatch) => {
 
 export const setIsAdmin = (isAdmin: boolean) => (dispatch: Dispatch) => {
   dispatch({ type: ADMIN_STATE, isAdmin });
+};
+
+export const setIsManager = (isManager: boolean) => (dispatch: Dispatch) => {
+  
+  dispatch({ type: MANAGER_STATE, isManager });
 };
 
 export const checkAdmin = () => (dispatch: Dispatch) => {

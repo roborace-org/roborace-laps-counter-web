@@ -5,7 +5,8 @@ import {
   RACE_TIME,
   RACE_ROBOT,
   REMOVE_ROBOT,
-  ADMIN_STATE
+  ADMIN_STATE,
+  MANAGER_STATE,
 } from "./actions";
 import { RaceStatus, IRaceState } from "./interfaces";
 
@@ -13,7 +14,8 @@ const INITIAL_STATE = {
   status: null,
   robots: [],
   time: 0,
-  isAdmin: false
+  isAdmin: false,
+  isManager: false,
 };
 
 interface IAction extends Action, IRaceState {}
@@ -63,6 +65,11 @@ const raceReducer: Reducer<IRaceState, IAction> = (
       return {
         ...state,
         isAdmin: action.isAdmin
+      };
+    case MANAGER_STATE:
+      return {
+        ...state,
+        isManager: action.isManager
       };
     default:
       return state;
