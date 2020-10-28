@@ -15,6 +15,7 @@ interface IRaceTimeProps {
   socketStatus: ISocketState["status"];
   raceStatus: IRaceState["status"];
   raceTime: IRaceState["time"];
+  raceTimeLimit: IRaceState["raceTimeLimit"];
 }
 
 class RaceTime extends PureComponent<IRaceTimeProps> {
@@ -24,7 +25,13 @@ class RaceTime extends PureComponent<IRaceTimeProps> {
       layuot = <RaceTimeTick time={this.props.raceTime} />;
     }
 
-    return <div className="laps-counter-time">{layuot}</div>;
+    return (
+      <div className="laps-counter-time">
+        {layuot}
+        &nbsp;
+        Limit: {this.props.raceTimeLimit/60} (min)
+      </div>
+    );
   }
 }
 

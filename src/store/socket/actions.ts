@@ -4,6 +4,7 @@ import Socket from "./Socket";
 import {
   setRaceState as setRaceStatus,
   setRaceTime,
+  setRaceTimeLimit,
   setRobot,
   removeRobor
 } from "../race/actions";
@@ -63,6 +64,7 @@ const onMessage = (message: SocketMessage, dispatch: Dispatch) => {
       break;
     case MessageType.TIME:
       setRaceTime(message.time, dispatch);
+      setRaceTimeLimit(message.raceTimeLimit, dispatch);
       break;
     case MessageType.LAP:
       const { type, ...robot } = message;

@@ -32,6 +32,7 @@ export default class RaceInfo extends Component<
               socketStatus={this.props.socketState.status}
               raceStatus={this.props.race.status}
               raceTime={this.props.race.time}
+              raceTimeLimit={this.props.race.raceTimeLimit}
             />
           </Col>
         </Row>
