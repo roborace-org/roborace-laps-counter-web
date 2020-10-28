@@ -4,6 +4,7 @@ import { IRaceState, IRobot } from "./interfaces";
 
 export const RACE_STATE = "ROBORACE/STATE";
 export const RACE_TIME = "ROBORACE/TIME";
+export const RACE_TIME_LIMIT = "ROBORACE/RACE_TIME_LIMIT";
 export const RACE_ROBOT = "ROBORACE/ROBOT";
 export const REMOVE_ROBOT = "ROBORACE/REMOVE_ROBOT";
 export const ADMIN_STATE = "ROBORACE/ADMIN_STATE";
@@ -18,6 +19,10 @@ export const setRaceState = (
 
 export const setRaceTime = (time: IRaceState["time"], dispatch: Dispatch) => {
   dispatch({ type: RACE_TIME, time });
+};
+
+export const setRaceTimeLimit = (raceTimeLimit: IRaceState["raceTimeLimit"], dispatch: Dispatch) => {
+  dispatch({ type: RACE_TIME_LIMIT, raceTimeLimit });
 };
 
 export const setRobot = (robot: IRobot, dispatch: Dispatch) => {

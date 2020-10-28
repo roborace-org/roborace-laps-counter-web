@@ -1,3 +1,5 @@
+import { Dispatch, AnyAction } from "redux";
+
 export enum RaceStatus {
   READY = "READY",
   STEADY = "STEADY",
@@ -26,6 +28,7 @@ export interface LapSocketMessage extends BaseSocketMessage, IRobot {
 }
 
 export interface TimeSocketMessage extends BaseSocketMessage {
+  raceTimeLimit: number;
   type: MessageType.TIME;
   time: number;
 }
@@ -45,6 +48,7 @@ export interface IRobot {
 }
 
 export interface IRaceState {
+  raceTimeLimit: number;
   status: RaceStatus | null;
   robots: IRobot[];
   time: number;

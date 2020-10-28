@@ -17,7 +17,6 @@ export interface IAppProps {
 export class CardRobot extends Component<IAppProps> {
   render() {
     const { robot } = this.props;
-    console.log(this.props.isSingle);
     return (
       <div className="card-robot race-table-row" >
         <RobotPlace place={robot.place} />
