@@ -16,9 +16,9 @@ interface RobotSerialProps {
 }
 class RobotName extends PureComponent<RobotSerialProps, any> {
   public render() {
-    const { robot, isAdmin } = this.props as any;
+    const { robot, isAdmin, isManager } = this.props as any;
     const content = isAdmin ? (
-      <RobotNameAdminForm robot={robot} isSingle={this.props.isSingle}/>
+      <RobotNameAdminForm robot={robot} isSingle={this.props.isSingle} isManager={isManager}/>
     ) : (
       <RobotNameUser robot={robot} />
     );
@@ -28,7 +28,8 @@ class RobotName extends PureComponent<RobotSerialProps, any> {
 }
 
 const mapStateToProps = (state: any) => ({
-  isAdmin: state.race.isAdmin
+  isAdmin: state.race.isAdmin,
+  isManager: state.race.isManager,
 });
 
 export default connect(mapStateToProps)(RobotName);
@@ -99,7 +100,7 @@ class RobotNameAdmin extends PureComponent<any> {
               }
             ]}
           />
-          {this.props.isSingle != true &&
+          {this.props.isManager == true &&
             <Form.Item>
               <Button
                 type="primary"
@@ -112,7 +113,7 @@ class RobotNameAdmin extends PureComponent<any> {
           }
         </Form>
         <Form layout="inline">
-          {this.props.isSingle != true && 
+          {this.props.isManager == true && 
             <Form.Item>
               <Button type="danger" onClick={this.removeRobot}>
                 remove
@@ -120,13 +121,13 @@ class RobotNameAdmin extends PureComponent<any> {
             </Form.Item>
           }
           <Form.Item>
-            <Button type="primary" onClick={this.addLap}>
-              + 1
+            <Button type="primary" onClick={this.addLap} size="large">
+              +&nbsp;1
             </Button>
           </Form.Item>
           <Form.Item>
-            <Button type="primary" onClick={this.removeLap}>
-              - 1
+            <Button type="primary" onClick={this.removeLap} size="large">
+              -&nbsp;1
             </Button>
           </Form.Item>
         </Form>

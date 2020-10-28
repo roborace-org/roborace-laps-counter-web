@@ -1,11 +1,12 @@
 import * as React from "react";
-import { Modal, Button } from "antd";
+import { Modal, Button, Checkbox } from "antd";
 import { connect } from "react-redux";
 
 import WsContainer from "../../../containers/forms/ws/WsContainer";
 import { submitWS } from "../../../store/initData/actions";
 import { SocketStatus, ISocketState } from "../../../store/socket/interfaces";
 import { connectSocket, disconnectSocket } from "../../../store/socket/actions";
+import { setIsManager } from "../../../store/race/actions";
 
 export interface IAppProps extends IStateToProps, IDispatchToProps {
   visible: boolean;
@@ -25,6 +26,10 @@ class HeaderModal extends React.Component<IAppProps, IAppState> {
 
   private closeModal = () => {
     this.props.toggleModal(false);
+  };
+
+  private changeManagerMode = (event) => {
+    this.props.setIsManager(event.target.checked);
   };
 
   private connectFromSubmit = (wsURL: string) => {
@@ -73,13 +78,15 @@ class HeaderModal extends React.Component<IAppProps, IAppState> {
         footer={[
           <Button key="back" onClick={this.closeModal}>
             Close
-          </Button>,
+          </Button>
+          ,
           this.props.status === SocketStatus.Connected
             ? this.disconnectButton
             : this.connectButton
         ]}
       >
         <WsContainer connectFromSubmit={this.connectFromSubmit} />
+        <Checkbox onChange={this.changeManagerMode}>Show save/delete robot</Checkbox>
       </Modal>
     );
   }
@@ -99,11 +106,13 @@ interface IDispatchToProps {
   connectSocket: (wsURL: string) => void;
   disconnectSocket: () => void;
   submitWS: () => void;
+  setIsManager: (boolean:boolean) => void;
 }
 const mapDispatchToProps: IDispatchToProps = {
   connectSocket,
   disconnectSocket,
-  submitWS
+  submitWS,
+  setIsManager,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(HeaderModal);

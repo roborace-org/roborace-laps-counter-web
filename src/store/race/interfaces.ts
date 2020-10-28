@@ -49,6 +49,7 @@ export interface IRaceState {
   robots: IRobot[];
   time: number;
   isAdmin: boolean;
+  isManager: boolean;
 }
 
 export type SocketMessage =
