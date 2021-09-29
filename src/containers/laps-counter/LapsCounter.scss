@@ -51,6 +51,14 @@ $border: 1px solid #eeeeee;
           width: 20%;
           max-width: 300px;
           min-width: 250px;
+          margin-bottom: 0px;
+          margin-top: 0px;
+          div {
+            .line {
+              margin-bottom: 0px;
+              margin-top: 0px;
+            }
+          }
         }
       }
     }

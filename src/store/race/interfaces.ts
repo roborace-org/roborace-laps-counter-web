@@ -45,6 +45,7 @@ export interface IRobot {
   time: number;
   place: number;
   name: string;
+  pitStopFinishTime: number;
 }
 
 export interface IRaceState {
