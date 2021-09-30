@@ -3,6 +3,10 @@ pipeline {
 
     options { disableConcurrentBuilds() }
 
+    parameters {
+        choice(name: 'DEPLOY', choices: 'NO\nYES', description: 'Deploy to the server')
+    }
+
     stages {
         stage('Install') {
             steps {
@@ -23,8 +27,8 @@ pipeline {
         stage('Deploy') {
             steps {
                 script {
-                    echo "Branch ${env.BRANCH_NAME}"
-                    if (env.BRANCH_NAME == 'master') {
+                    echo "Branch ${env.BRANCH_NAME}, DEPLOY=${params.DEPLOY}"
+                    if (env.BRANCH_NAME == 'master' || params.DEPLOY == 'YES') {
                         echo 'Deploy'
                         sh 'cp -rp build/* /var/www/laps.roborace.org'
                     }
