@@ -76,7 +76,7 @@
         #content input {
             margin: 0 0.5vw;
             padding: 0 1vw;
-            font-size: 2vw;
+            font-size: 1.5vw;
         }
 
     </style>
@@ -85,7 +85,6 @@
 <div id="root">
     <div id="header">Roborace Laps Counter</div>
     <div id="menu">
-        <!--<div>Laps: 25</div>-->
         <div>State: <span id="race-state">NOT CONNECTED</span></div>
         <div>Race Time: <span id="stopwatch">0:00.000</span></div>
     </div>
@@ -94,7 +93,7 @@
         <table style="margin: auto">
             <thead>
             <tr>
-                <th>Start #</th>
+                <!--                <th>Start #</th>-->
                 <th>Serial</th>
                 <th>Control</th>
                 <th>Name</th>
@@ -103,6 +102,7 @@
                 <th>Time</th>
                 <th>Best Lap</th>
                 <th>Last Lap</th>
+                <th>Pit Stop</th>
             </tr>
             </thead>
             <tbody id="tbody"></tbody>
@@ -111,7 +111,9 @@
     </div>
     <div id="buttons">
         <div id="config" class="block">
-            <input type="text" id="ip" value="ws://192.168.1.200:8888/ws">
+            <input type="text" id="ip" value="ws://laps.roborace.org:8888/ws">
+            <!--            <input type="text" id="ip" value="ws://localhost:8888/ws">-->
+            <!--            <input type="text" id="ip" value="ws://192.168.1.200:8888/ws">-->
             <input type="button" id="btn-connect" value="Connect">
         </div>
         <div id="control" class="block" style="display: none">
@@ -119,6 +121,12 @@
             <input type="button" class="btn-command" id="btn-steady" value="STEADY" data-command="STEADY">
             <input type="button" class="btn-command" id="btn-go" value="GO" data-command="RUNNING">
             <input type="button" class="btn-command" id="btn-finish" value="FINISH" data-command="FINISH">
+
+            <textarea id="robot-names" style="vertical-align: middle;">
+Robot 1
+Robot 2
+Robot 3</textarea>
+            <input type="button" id="btn-save-robot-names" value="SAVE" data-command="ROBOT_NAMES">
         </div>
     </div>
 </div>
@@ -127,21 +135,75 @@
         let socket;
         let raceState = 'UNKNOWN';
         let raceTime = 0;
-        const robots = {};
+        let robots = {};
 
         const updateInterval = 9;
         setInterval(function () {
             if (raceState === 'RUNNING') {
                 raceTime += updateInterval;
-                document.querySelector('#stopwatch').innerHTML = msToTime(raceTime);
+                drawRaceTime();
             }
         }, updateInterval);
+
+        setInterval(function () {
+            if (raceState === 'RUNNING') {
+                drawTable();
+            }
+        }, 999);
+
+        setTimeout(function () {
+            createConnection();
+        }, 0);
 
         let wsReconnectTimeoutId = null;
 
         document.querySelector('#btn-connect').addEventListener('click', function () {
             createConnection();
         });
+
+        function drawRaceTime() {
+            document.querySelector('#stopwatch').innerHTML = msToTime(raceTime);
+        }
+
+        function drawTable() {
+            const tbody = document.querySelector('#tbody');
+            tbody.innerHTML = '';
+            for (const serial in robots) {
+                let robot = robots[serial];
+                tbody.innerHTML += '<tr data-serial="' + robot.serial + '"></tr>';
+                const row = document.querySelector('#tbody tr[data-serial="' + robot.serial + '"]');
+                let pitStopTimeLeft = robot.pitStopFinishTime - raceTime;
+
+                row.innerHTML =
+                    // '<td>' + robot.num + '</td>' +
+                    '<td>' + robot.serial + '</td>' +
+                    '<td>' +
+                    '<input type="button" value="+1" data-type="LAP_MAN" data-serial="' + robot.serial + '">' +
+                    '<input type="button" value="-1" data-type="LAP_MAN" data-serial="' + robot.serial + '">' +
+                    '<input type="button" value="rm" data-type="ROBOT_REMOVE" data-serial="' + robot.serial + '">' +
+                    '<input type="button" value="pit stop" data-type="PIT_STOP" data-serial="' + robot.serial + '">' +
+                    '</td>' +
+                    '<td><input type="text" value="' + robot.name + '"><input type="button" value="ok" data-type="ROBOT_EDIT" data-serial="' + robot.serial + '"></td>' +
+                    '<td>' + robot.place + '</td>' +
+                    '<td>' + robot.laps + '</td>' +
+                    '<td>' + msToTime(robot.time) + '</td>' +
+                    '<td>' + msToTime(robot.bestLapTime) + '</td>' +
+                    '<td>' + msToTime(robot.lastLapTime) + '</td>' +
+                    '<td data-pit-stop-finish-time="' + robot.pitStopFinishTime + '">' + (pitStopTimeLeft >= 0 ? msToTime(pitStopTimeLeft, false) : '') + '</td>'
+                ;
+            }
+
+            // let buttons = document.querySelectorAll('#content input');
+            // for (let i = 0; i < buttons.length; i++) {
+            //     buttons[i].removeEventListener('click', onClickNum);
+            // }
+
+            let buttons = document.querySelectorAll('#content input[type="button"]');
+            for (let i = 0; i < buttons.length; i++) {
+                buttons[i].addEventListener('click', onClickNum);
+            }
+
+        }
 
         const buttons = document.querySelectorAll('.btn-command');
         for (let i = 0; i < buttons.length; i++) {
@@ -152,6 +214,27 @@
             });
         }
 
+        document.querySelector('#btn-save-robot-names').addEventListener('click', function (event) {
+            let text = document.querySelector('#robot-names').value;
+            let names = text.match(/[^\r\n]+/g);
+
+            for (const serial in robots) {
+                let robot = robots[serial];
+                let name = names[serial - 1];
+                console.log(name);
+                if (name !== undefined) {
+                    console.log('update ' + serial);
+                    let data = {
+                        'type': 'ROBOT_EDIT',
+                        'serial': parseInt(serial),
+                        'name': name
+                    };
+                    socket.send(JSON.stringify(data));
+                }
+            }
+        });
+
+
         const onClickNum = function (event) {
             const input = event.target;
 
@@ -161,6 +244,11 @@
                     'type': 'LAP_MAN',
                     'serial': parseInt(input.dataset.serial),
                     'laps': parseInt(input.value)
+                };
+            } else if (input.dataset.type === 'PIT_STOP') {
+                data = {
+                    'type': 'PIT_STOP',
+                    'serial': parseInt(input.dataset.serial)
                 };
             } else if (input.dataset.type === 'ROBOT_REMOVE') {
                 if (confirm("Do you really want to remove robot?")) {
@@ -199,47 +287,16 @@
             },
             TIME: function (data) {
                 raceTime = data.time;
+                drawRaceTime();
             },
             LAP: function (data) {
                 robots[data.serial] = data;
-                let row = document.querySelector('#tbody tr[data-serial="' + data.serial + '"]');
-                if (row === null) {
-                    const tbody = document.querySelector('#tbody');
-                    tbody.innerHTML += '<tr data-serial="' + data.serial + '"></tr>';
-                    row = document.querySelector('#tbody tr[data-serial="' + data.serial + '"]');
-                }
-
-                let buttons = document.querySelectorAll('#content input');
-                for (let i = 0; i < buttons.length; i++) {
-                    buttons[i].removeEventListener('click', onClickNum);
-                }
-
-                row.innerHTML =
-                    '<td>' + data.num + '</td>' +
-                    '<td>' + data.serial + '</td>' +
-                    '<td>' +
-                    '<input type="button" value="+1" data-type="LAP_MAN" data-serial="' + data.serial + '">' +
-                    '<input type="button" value="-1" data-type="LAP_MAN" data-serial="' + data.serial + '">' +
-                    '<input type="button" value="rm" data-type="ROBOT_REMOVE" data-serial="' + data.serial + '">' +
-                    '</td>' +
-                    '<td><input type="text" value="' + data.name + '"><input type="button" value="ok" data-type="ROBOT_EDIT" data-serial="' + data.serial + '"></td>' +
-                    '<td>' + data.place + '</td>' +
-                    '<td>' + data.laps + '</td>' +
-                    '<td>' + msToTime(data.time) + '</td>' +
-                    '<td>' + msToTime(data.bestLapTime) + '</td>' +
-                    '<td>' + msToTime(data.lastLapTime) + '</td>'
-                ;
-
-                buttons = document.querySelectorAll('#content input[type="button"]');
-                for (let i = 0; i < buttons.length; i++) {
-                    buttons[i].addEventListener('click', onClickNum);
-                }
-
+                console.log(robots);
+                drawTable();
             },
             ROBOT_REMOVE: function (data) {
-                robots[data.serial] = null;
-                const row = document.querySelector('#tbody tr[data-serial="' + data.serial + '"]');
-                row.remove();
+                delete robots[data.serial];
+                drawTable();
             },
             ERROR: function (data) {
                 console.log(data);
@@ -247,7 +304,7 @@
             }
         };
 
-        function msToTime(s) {
+        function msToTime(s, showMs = true) {
             if (s === undefined) return '';
             if (s === 0) return '0.0';
             let ms = s % 1000;
@@ -262,7 +319,7 @@
             const mins = s % 60;
             const hrs = (s - mins) / 60;
 
-            let result = mins + ':' + secs + '.' + ms;
+            let result = mins + ':' + secs + (showMs ? ('.' + ms) : '');
             if (hrs > 0) result = hrs + 'h ' + result;
             return result;
         }
@@ -273,14 +330,16 @@
 
             function onOpen(event) {
                 console.log('connected', event);
+                robots = {};
+                drawTable();
 
                 document.querySelector('#control').setAttribute('style', 'display: visible');
 
-                document.querySelector('#config').setAttribute('style', 'display: none');
-                const buttons = document.querySelectorAll('#config input');
-                for (let i = 0; i < buttons.length; i++) {
-                    buttons[i].toggleAttribute('disabled');
-                }
+                // document.querySelector('#config').setAttribute('style', 'display: none');
+                // const buttons = document.querySelectorAll('#config input');
+                // for (let i = 0; i < buttons.length; i++) {
+                //     buttons[i].toggleAttribute('disabled');
+                // }
 
                 socket.send(JSON.stringify({'type': 'LAPS'}));
             }
