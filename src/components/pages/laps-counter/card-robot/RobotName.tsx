@@ -69,6 +69,13 @@ class RobotNameAdmin extends PureComponent<any> {
     });
   };
 
+  pitstop = () => {
+    this.props.sendMessage({
+      serial: this.props.robot.serial,
+      type: "PIT_STOP"
+    });
+  };
+
   handleSubmit = e => {
     e.preventDefault();
     this.props.form.validateFields((err, values) => {
@@ -128,6 +135,11 @@ class RobotNameAdmin extends PureComponent<any> {
           <Form.Item>
             <Button type="primary" onClick={this.removeLap} size="large">
               -&nbsp;1
+            </Button>
+          </Form.Item>
+          <Form.Item>
+            <Button type="primary" onClick={this.pitstop} size="large">
+              pit stop
             </Button>
           </Form.Item>
         </Form>

@@ -3,7 +3,8 @@ import FlipMove from 'react-flip-move';
 import { connect } from 'react-redux';
 import { cmp } from 'type-comparator';
 
-import { IRobot } from '../../../../store/race/interfaces';
+import { IRaceState, IRobot } from '../../../../store/race/interfaces';
+import { ISocketState } from '../../../../store/socket/interfaces';
 import { CardRobot } from '../card-robot/CardRobot';
 
 
@@ -11,6 +12,8 @@ interface IAppProps {
   robots: IRobot[];
   isSingle?: Boolean;
   isAdmin: Boolean;
+  socketState: ISocketState;
+  race: IRaceState;
 }
 
 const RaceTable: FunctionComponent<IAppProps> = (props) => {
@@ -18,7 +21,7 @@ const RaceTable: FunctionComponent<IAppProps> = (props) => {
   const comparator = cmp().map(r => r.place).asc();
   const robotsCards = ((isAdmin ? robots : robots.sort(comparator))
     .map(robot => (
-      <CardRobot key={robot.serial} robot={robot} isSingle={props.isSingle}/>
+      <CardRobot key={robot.serial} robot={robot} isSingle={props.isSingle} race={props.race}/>
     )));
 
   let tableBody = (

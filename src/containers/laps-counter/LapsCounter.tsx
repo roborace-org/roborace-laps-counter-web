@@ -40,7 +40,7 @@ class LapsCounter extends React.Component<IAppProps, IAppState> {
     return (
       <div className="laps-counter">
         <RaceInfo socketState={this.props.socketState} race={this.props.race} />
-        <RaceTable robots={this.props.race.robots} />
+        <RaceTable robots={this.props.race.robots} socketState={this.props.socketState} race={this.props.race}/>
         {this.props.race.isAdmin && (
           <Button type="primary" onClick={this.enterLoading}>
             Add
