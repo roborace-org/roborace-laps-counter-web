@@ -9,6 +9,9 @@ const useTableStyles = makeStyles((theme: Theme) => ({
     borderBottom: "1px solid #D8D8D8",
     height: 70,
   },
+  pitstopRow: {
+    background: "rgba(245, 0, 87, 0.04)",
+  },
   rowCell: {
     height: (props?: any) => (props && props.count > 5 ? 110 : 125),
   },
@@ -32,7 +35,7 @@ const useTableStyles = makeStyles((theme: Theme) => ({
     },
   },
   cellValue: {
-    fontSize: 32,
+    fontSize: 50,
     fontWeight: "bold",
     [theme.breakpoints.down("md")]: {
       fontSize: 24,
@@ -69,9 +72,9 @@ const useTableStyles = makeStyles((theme: Theme) => ({
     textOverflow: "ellipsis",
   },
   times: {
-    minWidth: "150px",
-    width: "150px",
-    maxWidth: "150px",
+    minWidth: "210px",
+    width: "210px",
+    maxWidth: "210px",
   },
   time: {
     minWidth: "220px",

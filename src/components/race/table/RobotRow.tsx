@@ -1,6 +1,7 @@
 import { Button, Grid, makeStyles } from "@material-ui/core";
 import clsx from "clsx";
-import React, { useCallback, useMemo } from "react";
+import React, { useCallback, useContext, useMemo } from "react";
+import { RealRaceTimeContext } from "../../../contexts/RealRaceTimeContext";
 import { getColorsByPlace, msToTime } from "../../../helpers/fns";
 import { useAppDispatch, useAppSelector } from "../../../store";
 import { IRobot, RaceStatus } from "../../../store/race/interfaces";
@@ -49,6 +50,9 @@ const RobotRow: React.FC<IRobotRowProps> = ({
   }, [robot.place]);
   const raceState = useAppSelector((state) => state.race.status);
   const colorClasses = useStyles({ color, bgColor });
+  const realRaceTime = useContext(RealRaceTimeContext);
+  const hasPitStop =
+    robot.pitStopFinishTime && robot.pitStopFinishTime > realRaceTime;
 
   const addLap = useCallback(() => {
     dispatch(
@@ -80,7 +84,11 @@ const RobotRow: React.FC<IRobotRowProps> = ({
   }, [robot.serial, dispatch]);
 
   return (
-    <div className={clsx(classes.row, classes.rowCell, colorClasses.color)}>
+    <div
+      className={clsx(classes.row, classes.rowCell, colorClasses.color, {
+        [classes.pitstopRow]: hasPitStop,
+      })}
+    >
       <div className={clsx(classes.cell, classes.place, colorClasses.bgColor)}>
         <div
           className={clsx(classes.cellValue, classes.cellValueCenter)}
