@@ -12,10 +12,10 @@ const useStyles = makeStyles({
   },
   text: {
     position: "absolute",
-    fontSize: 32,
+    fontSize: 50,
     fontWeight: "bold",
     right: "32%",
-    top: "14px",
+    top: 3,
     width: 40,
     textAlign: "center",
     color: (props: any) => props.color,

@@ -12,7 +12,7 @@ const useStyles = makeStyles((theme: Theme) => ({
     },
   },
   time: {
-    fontSize: 32,
+    fontSize: 50,
     fontWeight: "bold",
     [theme.breakpoints.down("md")]: {
       fontSize: 24,
