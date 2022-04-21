@@ -35,7 +35,7 @@ const useTableStyles = makeStyles((theme: Theme) => ({
     },
   },
   cellValue: {
-    fontSize: 50,
+    fontSize: 45,
     fontWeight: "bold",
     [theme.breakpoints.down("md")]: {
       fontSize: 24,
