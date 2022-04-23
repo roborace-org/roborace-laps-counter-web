@@ -12,7 +12,7 @@ const RaceTable: React.FC<{ robots: IRobot[]; asAdmin: boolean }> = ({
   asAdmin,
 }) => {
   const classes = useTableStyles({ count: robots.length });
-  const showTime = useMediaQuery("(min-width:1500px)");
+  const showTime = useMediaQuery("(min-width:1600px)") && !asAdmin;
   const status = useAppSelector((state) => state.race.status);
 
   const content = robots.map((r) => (
