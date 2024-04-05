@@ -3,7 +3,7 @@ import { ISocketState, SocketStatus } from "./interfaces";
 
 const initialState: ISocketState = {
   status: SocketStatus.Disconnected,
-  wsURL: "ws://laps.roborace.org:8888/ws",
+  wsURL: "wss://laps.roborace.org/ws",
   isError: false,
 };
 
