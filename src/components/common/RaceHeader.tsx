@@ -102,6 +102,11 @@ const RaceHeader: React.FC<{ asAdmin?: boolean }> = ({ asAdmin = false }) => {
         return {
           label: "READY",
           command: "READY",
+          continue:
+            {
+              label: "CONTINUE",
+              command: "RUNNING",
+            }
         };
       case RaceStatus.READY:
         return {
@@ -141,6 +146,17 @@ const RaceHeader: React.FC<{ asAdmin?: boolean }> = ({ asAdmin = false }) => {
                       onClick={statusHandle(command.command)}
                     >
                       {command.label}
+                    </Button>
+                  </Grid>
+                )}
+                {asAdmin && command.continue && (
+                  <Grid item>
+                    <Button
+                      color="primary"
+                      variant="contained"
+                      onClick={statusHandle(command.continue.command)}
+                    >
+                      {command.continue.label}
                     </Button>
                   </Grid>
                 )}
