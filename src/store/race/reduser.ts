@@ -1,5 +1,5 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
-import { IRaceState, IRobot } from "./interfaces";
+import { IEvent, IProgram, IRaceState, IRobot } from "./interfaces";
 
 const initialState: IRaceState = {
   status: null,
@@ -7,6 +7,10 @@ const initialState: IRaceState = {
   raceTimeLimit: 0,
   time: 0,
   isAdmin: localStorage.getItem("uuuuuu") === "-544719056",
+  events: [],
+  selectedEventId: null,
+  programs: [],
+  selectedProgramId: null,
 };
 
 const receSlice = createSlice({
@@ -59,6 +63,22 @@ const receSlice = createSlice({
       }
       state.isAdmin = action.payload;
     },
+
+    setEvents: (state, action: PayloadAction<IEvent[]>) => {
+      state.events = action.payload;
+    },
+
+    setSelectedEventId: (state, action: PayloadAction<number | null>) => {
+      state.selectedEventId = action.payload;
+    },
+
+    setPrograms: (state, action: PayloadAction<IProgram[]>) => {
+      state.programs = action.payload;
+    },
+
+    setSelectedProgramId: (state, action: PayloadAction<number | null>) => {
+      state.selectedProgramId = action.payload;
+    },
   },
 });
 
@@ -72,4 +92,8 @@ export const {
   removeRobot,
   clearRobots,
   setAdmin,
+  setEvents,
+  setSelectedEventId,
+  setPrograms,
+  setSelectedProgramId,
 } = receSlice.actions;

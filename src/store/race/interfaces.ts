@@ -17,10 +17,25 @@ export interface IRobot {
   bestLapTime: number;
 }
 
+export interface IEvent {
+  id: number;
+  name: string;
+  date: string;
+}
+
+export interface IProgram {
+  id: number;
+  name: string;
+}
+
 export interface IRaceState {
   raceTimeLimit: number;
   time: number;
   status: RaceStatus | null;
   robots: IRobot[];
   isAdmin: boolean;
+  events: IEvent[];
+  selectedEventId: number | null;
+  programs: IProgram[];
+  selectedProgramId: number | null;
 }

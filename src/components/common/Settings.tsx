@@ -1,14 +1,26 @@
 import {
   Button,
+  CircularProgress,
+  Divider,
+  FormControl,
   Grid,
   InputAdornment,
+  InputLabel,
+  MenuItem,
+  Select,
   TextField,
   Typography,
 } from "@material-ui/core";
 import { makeStyles } from "@material-ui/styles";
 import React, { ChangeEvent, useCallback, useEffect, useState } from "react";
 import { useAppDispatch, useAppSelector } from "../../store";
-import { RaceStatus } from "../../store/race/interfaces";
+import { IEvent, IProgram, RaceStatus } from "../../store/race/interfaces";
+import {
+  setEvents,
+  setSelectedEventId,
+  setPrograms,
+  setSelectedProgramId,
+} from "../../store/race/reduser";
 import { SocketStatus } from "../../store/socket/interfaces";
 import {
   connectSocket,
@@ -29,6 +41,8 @@ const Settings: React.FC = () => {
   const [raceTimeValue, setTimeRaceValue] = useState<number>(0);
   const [robotsValueValue, setRobotsValueValue] = useState<string>("");
   const [wsURLValue, setWsURLValue] = useState<string>("");
+  const [eventsLoading, setEventsLoading] = useState<boolean>(false);
+  const [programsLoading, setProgramsLoading] = useState<boolean>(false);
   const {
     raceTimeLimit,
     robots,
@@ -36,6 +50,10 @@ const Settings: React.FC = () => {
     socketWsURL,
     raceStatus,
     isAdmin,
+    events,
+    selectedEventId,
+    programs,
+    selectedProgramId,
   } = useAppSelector((state) => ({
     raceTimeLimit: state.race.raceTimeLimit,
     robots: state.race.robots,
@@ -43,6 +61,10 @@ const Settings: React.FC = () => {
     socketWsURL: state.socket.wsURL,
     raceStatus: state.race.status,
     isAdmin: state.race.isAdmin,
+    events: state.race.events,
+    selectedEventId: state.race.selectedEventId,
+    programs: state.race.programs,
+    selectedProgramId: state.race.selectedProgramId,
   }));
 
   useEffect(() => {
@@ -86,6 +108,50 @@ const Settings: React.FC = () => {
   const wsUrlChanged = useCallback((event: ChangeEvent<HTMLInputElement>) => {
     setWsURLValue(event.target.value);
   }, []);
+
+  const getBaseUrl = useCallback(() => {
+    return wsURLValue
+      .replace(/^ws:/, "http:")
+      .replace(/^wss:/, "https:")
+      .replace(/\/ws\/?$/, "");
+  }, [wsURLValue]);
+
+  const loadEventsHandle = useCallback(async () => {
+    setEventsLoading(true);
+    try {
+      const response = await fetch(`${getBaseUrl()}/robofinist/events`);
+      const data: IEvent[] = await response.json();
+      dispatch(setEvents(data));
+    } catch (error) {
+      console.error("Failed to load events:", error);
+    } finally {
+      setEventsLoading(false);
+    }
+  }, [getBaseUrl, dispatch]);
+
+  const loadProgramsHandle = useCallback(async (eventId: number) => {
+    setProgramsLoading(true);
+    dispatch(setPrograms([]));
+    dispatch(setSelectedProgramId(null));
+    try {
+      const response = await fetch(`${getBaseUrl()}/robofinist/events/${eventId}/programs`);
+      const data: IProgram[] = await response.json();
+      dispatch(setPrograms(data));
+    } catch (error) {
+      console.error("Failed to load programs:", error);
+    } finally {
+      setProgramsLoading(false);
+    }
+  }, [getBaseUrl, dispatch]);
+
+  const handleEventChange = useCallback((eventId: number) => {
+    dispatch(setSelectedEventId(eventId));
+    loadProgramsHandle(eventId);
+  }, [loadProgramsHandle, dispatch]);
+
+  const handleProgramChange = useCallback((programId: number) => {
+    dispatch(setSelectedProgramId(programId));
+  }, [dispatch]);
 
   return (
     <div className={classes.root}>
@@ -177,6 +243,58 @@ const Settings: React.FC = () => {
               </Grid>
             </Grid>
           </>
+        )}
+        <Grid item xs={12}>
+          <Divider />
+        </Grid>
+        <Grid item xs={12}>
+          {events.length === 0 ? (
+            <Button
+              variant="contained"
+              onClick={loadEventsHandle}
+              disabled={eventsLoading}
+              startIcon={eventsLoading ? <CircularProgress size={20} /> : null}
+            >
+              Load Events
+            </Button>
+          ) : (
+            <FormControl fullWidth variant="outlined">
+              <InputLabel>Event</InputLabel>
+              <Select
+                value={selectedEventId ?? ""}
+                onChange={(e) => handleEventChange(e.target.value as number)}
+                label="Event"
+              >
+                {events.map((event) => (
+                  <MenuItem key={event.id} value={event.id}>
+                    {event.name} ({event.date})
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          )}
+        </Grid>
+        {(programsLoading || programs.length > 0) && (
+          <Grid item xs={12}>
+            {programsLoading ? (
+              <CircularProgress size={24} />
+            ) : (
+              <FormControl fullWidth variant="outlined">
+                <InputLabel>Program</InputLabel>
+                <Select
+                  value={selectedProgramId ?? ""}
+                  onChange={(e) => handleProgramChange(e.target.value as number)}
+                  label="Program"
+                >
+                  {programs.map((program) => (
+                    <MenuItem key={program.id} value={program.id}>
+                      {program.name}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            )}
+          </Grid>
         )}
       </Grid>
     </div>
