@@ -1,5 +1,5 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
-import { IEvent, IProgram, IRaceState, IRobot } from "./interfaces";
+import { IBid, IEvent, IProgram, IRaceState, IRobot, IStage } from "./interfaces";
 
 const initialState: IRaceState = {
   status: null,
@@ -11,6 +11,9 @@ const initialState: IRaceState = {
   selectedEventId: null,
   programs: [],
   selectedProgramId: null,
+  bids: [],
+  stages: [],
+  selectedStageId: null,
 };
 
 const receSlice = createSlice({
@@ -79,6 +82,18 @@ const receSlice = createSlice({
     setSelectedProgramId: (state, action: PayloadAction<number | null>) => {
       state.selectedProgramId = action.payload;
     },
+
+    setBids: (state, action: PayloadAction<IBid[]>) => {
+      state.bids = action.payload;
+    },
+
+    setStages: (state, action: PayloadAction<IStage[]>) => {
+      state.stages = action.payload;
+    },
+
+    setSelectedStageId: (state, action: PayloadAction<number | null>) => {
+      state.selectedStageId = action.payload;
+    },
   },
 });
 
@@ -96,4 +111,7 @@ export const {
   setSelectedEventId,
   setPrograms,
   setSelectedProgramId,
+  setBids,
+  setStages,
+  setSelectedStageId,
 } = receSlice.actions;

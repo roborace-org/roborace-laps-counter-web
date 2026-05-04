@@ -8,18 +8,27 @@ import {
   InputLabel,
   MenuItem,
   Select,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableRow,
   TextField,
+  Tooltip,
   Typography,
 } from "@material-ui/core";
 import { makeStyles } from "@material-ui/styles";
 import React, { ChangeEvent, useCallback, useEffect, useState } from "react";
 import { useAppDispatch, useAppSelector } from "../../store";
-import { IEvent, IProgram, RaceStatus } from "../../store/race/interfaces";
+import { IBid, IEvent, IProgram, IStage, RaceStatus } from "../../store/race/interfaces";
 import {
+  setBids,
   setEvents,
   setSelectedEventId,
   setPrograms,
   setSelectedProgramId,
+  setSelectedStageId,
+  setStages,
 } from "../../store/race/reduser";
 import { SocketStatus } from "../../store/socket/interfaces";
 import {
@@ -30,7 +39,7 @@ import {
 } from "../../store/socket/thunks";
 const useStyles = makeStyles({
   root: {
-    width: 500,
+    width: 750,
     height: "100vh",
     padding: 16,
   },
@@ -43,6 +52,8 @@ const Settings: React.FC = () => {
   const [wsURLValue, setWsURLValue] = useState<string>("");
   const [eventsLoading, setEventsLoading] = useState<boolean>(false);
   const [programsLoading, setProgramsLoading] = useState<boolean>(false);
+  const [bidsLoading, setBidsLoading] = useState<boolean>(false);
+  const [stagesLoading, setStagesLoading] = useState<boolean>(false);
   const {
     raceTimeLimit,
     robots,
@@ -54,6 +65,9 @@ const Settings: React.FC = () => {
     selectedEventId,
     programs,
     selectedProgramId,
+    bids,
+    stages,
+    selectedStageId,
   } = useAppSelector((state) => ({
     raceTimeLimit: state.race.raceTimeLimit,
     robots: state.race.robots,
@@ -65,6 +79,9 @@ const Settings: React.FC = () => {
     selectedEventId: state.race.selectedEventId,
     programs: state.race.programs,
     selectedProgramId: state.race.selectedProgramId,
+    bids: state.race.bids,
+    stages: state.race.stages,
+    selectedStageId: state.race.selectedStageId,
   }));
 
   useEffect(() => {
@@ -144,14 +161,78 @@ const Settings: React.FC = () => {
     }
   }, [getBaseUrl, dispatch]);
 
+  const loadBidsHandle = useCallback(async (programId: number) => {
+    setBidsLoading(true);
+    dispatch(setBids([]));
+    try {
+      const response = await fetch(`${getBaseUrl()}/robofinist/programs/${programId}/bids`);
+      const data: IBid[] = await response.json();
+      dispatch(setBids(data));
+    } catch (error) {
+      console.error("Failed to load bids:", error);
+    } finally {
+      setBidsLoading(false);
+    }
+  }, [getBaseUrl, dispatch]);
+
+  const loadStagesHandle = useCallback(async (programId: number) => {
+    setStagesLoading(true);
+    dispatch(setStages([]));
+    try {
+      const response = await fetch(`${getBaseUrl()}/robofinist/programs/${programId}/stages`);
+      const data: IStage[] = await response.json();
+      dispatch(setStages(data));
+    } catch (error) {
+      console.error("Failed to load stages:", error);
+    } finally {
+      setStagesLoading(false);
+    }
+  }, [getBaseUrl, dispatch]);
+
   const handleEventChange = useCallback((eventId: number) => {
     dispatch(setSelectedEventId(eventId));
+    dispatch(setBids([]));
+    dispatch(setStages([]));
+    dispatch(setSelectedStageId(null));
     loadProgramsHandle(eventId);
   }, [loadProgramsHandle, dispatch]);
 
   const handleProgramChange = useCallback((programId: number) => {
     dispatch(setSelectedProgramId(programId));
+    dispatch(setSelectedStageId(null));
+    loadBidsHandle(programId);
+    loadStagesHandle(programId);
+  }, [dispatch, loadBidsHandle, loadStagesHandle]);
+
+  const handleStageChange = useCallback((stageId: number) => {
+    dispatch(setSelectedStageId(stageId));
   }, [dispatch]);
+
+  const markParticipatedHandle = useCallback(async (bidId: number) => {
+    try {
+      await fetch(`${getBaseUrl()}/robofinist/bids/${bidId}/participated`, {
+        method: 'POST',
+      });
+      if (selectedProgramId) {
+        loadBidsHandle(selectedProgramId);
+      }
+    } catch (error) {
+      console.error("Failed to mark bid as participated:", error);
+    }
+  }, [getBaseUrl, selectedProgramId, loadBidsHandle]);
+
+  const markAbsenceHandle = useCallback(async (bidId: number) => {
+    try {
+      await fetch(`${getBaseUrl()}/robofinist/bids/${bidId}/absence`, {
+        method: 'POST',
+      });
+      if (selectedProgramId) {
+        loadBidsHandle(selectedProgramId);
+      }
+    } catch (error) {
+      console.error("Failed to mark bid as absence:", error);
+    }
+  }, [getBaseUrl, selectedProgramId, loadBidsHandle]);
 
   return (
     <div className={classes.root}>
@@ -257,6 +338,10 @@ const Settings: React.FC = () => {
             >
               Load Events
             </Button>
+          ) : selectedProgramId ? (
+            <Typography variant="h6">
+              {events.find(e => e.id === selectedEventId)?.name}
+            </Typography>
           ) : (
             <FormControl fullWidth variant="outlined">
               <InputLabel>Event</InputLabel>
@@ -294,6 +379,89 @@ const Settings: React.FC = () => {
                 </Select>
               </FormControl>
             )}
+          </Grid>
+        )}
+        {(stagesLoading || stages.length > 0) && (
+          <Grid item xs={12}>
+            {stagesLoading ? (
+              <CircularProgress size={24} />
+            ) : (
+              <FormControl fullWidth variant="outlined">
+                <InputLabel>Stage</InputLabel>
+                <Select
+                  value={selectedStageId ?? ""}
+                  onChange={(e) => handleStageChange(e.target.value as number)}
+                  label="Stage"
+                >
+                  {stages.map((stage) => (
+                    <MenuItem key={stage.id} value={stage.id}>
+                      {stage.name} - {stage.statusLabel ?? "Unknown"}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            )}
+          </Grid>
+        )}
+        {(bidsLoading || bids.length > 0) && (
+          <Grid item xs={12}>
+            <Typography variant="h6" gutterBottom>
+              Participants ({bids.length})
+            </Typography>
+            {bidsLoading ? (
+              <CircularProgress size={24} />
+            ) : (() => {
+              const hasActions = bids.some(bid => bid.status === 5);
+              return (
+                <Table size="small">
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>Name</TableCell>
+                      <TableCell>Status</TableCell>
+                      {hasActions && <TableCell>Actions</TableCell>}
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {bids.map((bid) => (
+                      <Tooltip
+                        key={bid.id}
+                        title={bid.organizations.map(o => o.name).join(", ") || ""}
+                        placement="left"
+                      >
+                        <TableRow>
+                          <TableCell>{bid.name}</TableCell>
+                          <TableCell>{bid.statusLabel}</TableCell>
+                          {hasActions && (
+                            <TableCell>
+                              {bid.status === 5 && (
+                                <>
+                                  <Button
+                                    size="small"
+                                    variant="outlined"
+                                    onClick={() => markParticipatedHandle(bid.id)}
+                                    style={{ backgroundColor: '#e8f5e9', marginRight: 8 }}
+                                  >
+                                    Приняла участие
+                                  </Button>
+                                  <Button
+                                    size="small"
+                                    variant="outlined"
+                                    onClick={() => markAbsenceHandle(bid.id)}
+                                    style={{ backgroundColor: '#ffebee' }}
+                                  >
+                                    Неявка
+                                  </Button>
+                                </>
+                              )}
+                            </TableCell>
+                          )}
+                        </TableRow>
+                      </Tooltip>
+                    ))}
+                  </TableBody>
+                </Table>
+              );
+            })()}
           </Grid>
         )}
       </Grid>
