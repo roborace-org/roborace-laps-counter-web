@@ -48,6 +48,20 @@ export interface IStage {
   statusLabel: string | null;
 }
 
+export interface IAttemptResult {
+  laps: number | null;
+  time: number | null;
+  disqualified: boolean;
+}
+
+export interface IQualificationResult {
+  bidId: number;
+  name: string;
+  best: IAttemptResult | null;
+  attempts: IAttemptResult[];
+  place: number | null;
+}
+
 export interface IRaceState {
   raceTimeLimit: number;
   time: number;

@@ -20,7 +20,7 @@ import {
 import { makeStyles } from "@material-ui/styles";
 import React, { ChangeEvent, useCallback, useEffect, useState } from "react";
 import { useAppDispatch, useAppSelector } from "../../store";
-import { IBid, IEvent, IProgram, IStage, RaceStatus } from "../../store/race/interfaces";
+import { IBid, IEvent, IProgram, IQualificationResult, IStage, RaceStatus } from "../../store/race/interfaces";
 import {
   setBids,
   setEvents,
@@ -54,6 +54,8 @@ const Settings: React.FC = () => {
   const [programsLoading, setProgramsLoading] = useState<boolean>(false);
   const [bidsLoading, setBidsLoading] = useState<boolean>(false);
   const [stagesLoading, setStagesLoading] = useState<boolean>(false);
+  const [qualificationResults, setQualificationResults] = useState<IQualificationResult[]>([]);
+  const [resultsLoading, setResultsLoading] = useState<boolean>(false);
   const {
     raceTimeLimit,
     robots,
@@ -200,13 +202,34 @@ const Settings: React.FC = () => {
   const handleProgramChange = useCallback((programId: number) => {
     dispatch(setSelectedProgramId(programId));
     dispatch(setSelectedStageId(null));
+    setQualificationResults([]);
     loadBidsHandle(programId);
     loadStagesHandle(programId);
   }, [dispatch, loadBidsHandle, loadStagesHandle]);
 
+  const loadQualificationResults = useCallback(async (programId: number, stageId: number) => {
+    setResultsLoading(true);
+    setQualificationResults([]);
+    try {
+      const response = await fetch(`${getBaseUrl()}/robofinist/programs/${programId}/stages/${stageId}/results`);
+      const data: IQualificationResult[] = await response.json();
+      setQualificationResults(data);
+    } catch (error) {
+      console.error("Failed to load qualification results:", error);
+    } finally {
+      setResultsLoading(false);
+    }
+  }, [getBaseUrl]);
+
   const handleStageChange = useCallback((stageId: number) => {
     dispatch(setSelectedStageId(stageId));
-  }, [dispatch]);
+    const stage = stages.find(s => s.id === stageId);
+    if (stage && stage.name.toLowerCase().includes('квалификац') && selectedProgramId) {
+      loadQualificationResults(selectedProgramId, stageId);
+    } else {
+      setQualificationResults([]);
+    }
+  }, [dispatch, stages, selectedProgramId, loadQualificationResults]);
 
   const markParticipatedHandle = useCallback(async (bidId: number) => {
     try {
@@ -454,71 +477,123 @@ const Settings: React.FC = () => {
             )}
           </Grid>
         )}
-        {(bidsLoading || bids.length > 0) && (
+        {(bidsLoading || bids.length > 0) && bids.some(bid => bid.status === 5) && (
           <Grid item xs={12}>
             <Typography variant="h6" gutterBottom>
               Participants ({bids.length})
             </Typography>
             {bidsLoading ? (
               <CircularProgress size={24} />
-            ) : (() => {
-              const hasActions = bids.some(bid => bid.status === 5);
-              const isRegistrationPhase = hasActions;
-              return (
-                <Table size="small">
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>Name</TableCell>
-                      {isRegistrationPhase && <TableCell>Status</TableCell>}
-                      {hasActions && <TableCell>Actions</TableCell>}
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {bids.map((bid) => (
-                      <Tooltip
-                        key={bid.id}
-                        title={bid.organizations.map(o => o.name).join(", ") || ""}
-                        placement="left"
-                      >
-                        <TableRow>
-                          <TableCell>{bid.name}</TableCell>
-                          {isRegistrationPhase && <TableCell>{bid.statusLabel}</TableCell>}
-                          {hasActions && (
-                            <TableCell>
-                              {bid.status === 5 && (
-                                <>
-                                  <Button
-                                    size="small"
-                                    variant="outlined"
-                                    onClick={() => markParticipatedHandle(bid.id)}
-                                    style={{ backgroundColor: '#e8f5e9', marginRight: 8 }}
-                                  >
-                                    Приняла участие
-                                  </Button>
-                                  <Button
-                                    size="small"
-                                    variant="outlined"
-                                    onClick={() => markAbsenceHandle(bid.id)}
-                                    style={{ backgroundColor: '#ffebee' }}
-                                  >
-                                    Неявка
-                                  </Button>
-                                </>
-                              )}
-                            </TableCell>
+            ) : (
+              <Table size="small">
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Name</TableCell>
+                    <TableCell>Status</TableCell>
+                    <TableCell>Actions</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {bids.map((bid) => (
+                    <Tooltip
+                      key={bid.id}
+                      title={bid.organizations.map(o => o.name).join(", ") || ""}
+                      placement="left"
+                    >
+                      <TableRow>
+                        <TableCell>{bid.name}</TableCell>
+                        <TableCell>{bid.statusLabel}</TableCell>
+                        <TableCell>
+                          {bid.status === 5 && (
+                            <>
+                              <Button
+                                size="small"
+                                variant="outlined"
+                                onClick={() => markParticipatedHandle(bid.id)}
+                                style={{ backgroundColor: '#e8f5e9', marginRight: 8 }}
+                              >
+                                Приняла участие
+                              </Button>
+                              <Button
+                                size="small"
+                                variant="outlined"
+                                onClick={() => markAbsenceHandle(bid.id)}
+                                style={{ backgroundColor: '#ffebee' }}
+                              >
+                                Неявка
+                              </Button>
+                            </>
                           )}
-                        </TableRow>
-                      </Tooltip>
-                    ))}
-                  </TableBody>
-                </Table>
-              );
-            })()}
+                        </TableCell>
+                      </TableRow>
+                    </Tooltip>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </Grid>
+        )}
+        {(resultsLoading || qualificationResults.length > 0) && (
+          <Grid item xs={12}>
+            <Typography variant="h6" gutterBottom>
+              Qualification Results
+            </Typography>
+            {resultsLoading ? (
+              <CircularProgress size={24} />
+            ) : (
+              <Table size="small">
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Place</TableCell>
+                    <TableCell>Name</TableCell>
+                    <TableCell>Best</TableCell>
+                    <TableCell>Try 1</TableCell>
+                    <TableCell>Try 2</TableCell>
+                    <TableCell>Try 3</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {qualificationResults.map((result) => (
+                    <TableRow key={result.bidId}>
+                      <TableCell>{result.place}</TableCell>
+                      <TableCell>{result.name}</TableCell>
+                      <TableCell><strong>{formatAttemptResult(result.best)}</strong></TableCell>
+                      {result.attempts.map((attempt, index) => (
+                        <TableCell key={index} style={attempt.disqualified ? { color: 'red' } : undefined}>
+                          {attempt.disqualified ? 'DQ' : formatAttemptResult(attempt)}
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
           </Grid>
         )}
       </Grid>
     </div>
   );
+};
+
+const formatTime = (seconds: number | null): string => {
+  if (seconds === null || seconds === 0) return '-';
+  const minutes = Math.floor(seconds / 60);
+  const secs = Math.floor(seconds % 60);
+  const centiseconds = Math.round((seconds % 1) * 100);
+  if (minutes > 0) {
+    return `${minutes}:${secs.toString().padStart(2, '0')}.${centiseconds.toString().padStart(2, '0')}`;
+  }
+  return `${secs}.${centiseconds.toString().padStart(2, '0')}`;
+};
+
+const formatAttemptResult = (attempt: { laps: number | null; time: number | null } | null): string => {
+  if (!attempt || (attempt.laps === null && attempt.time === null)) return '-';
+  const lapsStr = attempt.laps !== null ? `${attempt.laps}` : '';
+  const timeStr = formatTime(attempt.time);
+  if (lapsStr && timeStr !== '-') {
+    return `${lapsStr} / ${timeStr}`;
+  }
+  return lapsStr || timeStr;
 };
 
 export default Settings;
