@@ -234,6 +234,34 @@ const Settings: React.FC = () => {
     }
   }, [getBaseUrl, selectedProgramId, loadBidsHandle]);
 
+  const startStageHandle = useCallback(async (stageId: number) => {
+    try {
+      await fetch(`${getBaseUrl()}/robofinist/stages/${stageId}/start`, {
+        method: 'POST',
+      });
+      if (selectedProgramId) {
+        loadStagesHandle(selectedProgramId);
+      }
+    } catch (error) {
+      console.error("Failed to start stage:", error);
+    }
+  }, [getBaseUrl, selectedProgramId, loadStagesHandle]);
+
+  const getProgramPhase = useCallback(() => {
+    const hasAcceptedBids = bids.some(bid => bid.status === 5);
+    const qualificationStage = stages.find(stage => stage.name.toLowerCase().includes('квалификац'));
+    
+    if (hasAcceptedBids) {
+      return { phase: 'Регистрация', canStartQualification: false, qualificationStageId: null };
+    } else if (qualificationStage && qualificationStage.status === 0) {
+      return { phase: 'Регистрация завершена', canStartQualification: true, qualificationStageId: qualificationStage.id };
+    } else if (qualificationStage && qualificationStage.status === 2) {
+      return { phase: 'Квалификация', canStartQualification: false, qualificationStageId: null };
+    } else {
+      return { phase: 'Неизвестно', canStartQualification: false, qualificationStageId: null };
+    }
+  }, [bids, stages]);
+
   return (
     <div className={classes.root}>
       <Typography variant="h4" gutterBottom>
@@ -381,6 +409,29 @@ const Settings: React.FC = () => {
             )}
           </Grid>
         )}
+        {selectedProgramId && !bidsLoading && !stagesLoading && (
+          <Grid item xs={12}>
+            {(() => {
+              const { phase, canStartQualification, qualificationStageId } = getProgramPhase();
+              return (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                  <Typography variant="subtitle1">
+                    Фаза: <strong>{phase}</strong>
+                  </Typography>
+                  {canStartQualification && qualificationStageId && (
+                    <Button
+                      variant="contained"
+                      color="primary"
+                      onClick={() => startStageHandle(qualificationStageId)}
+                    >
+                      Начать квалификацию
+                    </Button>
+                  )}
+                </div>
+              );
+            })()}
+          </Grid>
+        )}
         {(stagesLoading || stages.length > 0) && (
           <Grid item xs={12}>
             {stagesLoading ? (
@@ -412,12 +463,13 @@ const Settings: React.FC = () => {
               <CircularProgress size={24} />
             ) : (() => {
               const hasActions = bids.some(bid => bid.status === 5);
+              const isRegistrationPhase = hasActions;
               return (
                 <Table size="small">
                   <TableHead>
                     <TableRow>
                       <TableCell>Name</TableCell>
-                      <TableCell>Status</TableCell>
+                      {isRegistrationPhase && <TableCell>Status</TableCell>}
                       {hasActions && <TableCell>Actions</TableCell>}
                     </TableRow>
                   </TableHead>
@@ -430,7 +482,7 @@ const Settings: React.FC = () => {
                       >
                         <TableRow>
                           <TableCell>{bid.name}</TableCell>
-                          <TableCell>{bid.statusLabel}</TableCell>
+                          {isRegistrationPhase && <TableCell>{bid.statusLabel}</TableCell>}
                           {hasActions && (
                             <TableCell>
                               {bid.status === 5 && (
