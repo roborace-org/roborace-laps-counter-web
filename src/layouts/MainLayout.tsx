@@ -9,6 +9,7 @@ import LoginDrawer from "./LoginDrawer";
 import { useAppDispatch, useAppSelector } from "../store";
 import { setAdmin } from "../store/race/reduser";
 import { Link, useHistory } from "react-router-dom";
+import { IProgram } from "../store/race/interfaces";
 
 const useStyles = makeStyles({
   root: {
@@ -33,8 +34,16 @@ const MainLayout: React.FC = ({ children }) => {
   const [openSettings, setOpenSettings] = useState<boolean>(false);
   const [openLogin, setOpenLogin] = useState<boolean>(false);
   const realRaceTime = useRealRaceTime();
-  const isAdmin = useAppSelector((state) => state.race.isAdmin);
+  const { isAdmin, programs, selectedProgramId } = useAppSelector((state) => ({
+    isAdmin: state.race.isAdmin,
+    programs: state.race.programs,
+    selectedProgramId: state.race.selectedProgramId,
+  }));
   const dispatch = useAppDispatch();
+
+  const selectedProgram = useMemo(() => {
+    return programs.find((p: IProgram) => p.id === selectedProgramId);
+  }, [programs, selectedProgramId]);
 
   const logoutHandle = useCallback(() => {
     dispatch(setAdmin(false));
@@ -83,7 +92,10 @@ const MainLayout: React.FC = ({ children }) => {
           <Toolbar>
             <div className={classes.flexGrow}>
               <Link to="/" className={classes.logo}>
-                <Typography variant="h4">Roborace Laps Counter</Typography>
+                <Typography variant="h4">
+                  Roborace Laps Counter
+                  {selectedProgram && ` — ${selectedProgram.name}`}
+                </Typography>
               </Link>
             </div>
             <PoperMenu items={menuItems} />
