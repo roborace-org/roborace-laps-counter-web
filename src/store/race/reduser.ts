@@ -4,6 +4,7 @@ import { IBid, IEvent, IProgram, IRaceState, IRobot, IStage } from "./interfaces
 const initialState: IRaceState = {
   status: null,
   robots: [],
+  robotBidMap: {},
   raceTimeLimit: 0,
   time: 0,
   isAdmin: localStorage.getItem("uuuuuu") === "-544719056",
@@ -94,6 +95,10 @@ const receSlice = createSlice({
     setSelectedStageId: (state, action: PayloadAction<number | null>) => {
       state.selectedStageId = action.payload;
     },
+
+    setRobotBidMap: (state, action: PayloadAction<Record<string, number>>) => {
+      state.robotBidMap = action.payload;
+    },
   },
 });
 
@@ -114,4 +119,5 @@ export const {
   setBids,
   setStages,
   setSelectedStageId,
+  setRobotBidMap,
 } = receSlice.actions;

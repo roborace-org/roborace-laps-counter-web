@@ -15,6 +15,7 @@ export interface IRobot {
   pitStopFinishTime: number;
   lastLapTime: number;
   bestLapTime: number;
+  bidId?: number;
 }
 
 export interface IEvent {
@@ -67,6 +68,7 @@ export interface IRaceState {
   time: number;
   status: RaceStatus | null;
   robots: IRobot[];
+  robotBidMap: Record<string, number>;
   isAdmin: boolean;
   events: IEvent[];
   selectedEventId: number | null;

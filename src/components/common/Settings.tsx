@@ -58,8 +58,6 @@ const Settings: React.FC = () => {
     isAdmin,
     events,
     selectedEventId,
-    programs,
-    selectedProgramId,
   } = useAppSelector((state) => ({
     raceTimeLimit: state.race.raceTimeLimit,
     robots: state.race.robots,
@@ -69,8 +67,6 @@ const Settings: React.FC = () => {
     isAdmin: state.race.isAdmin,
     events: state.race.events,
     selectedEventId: state.race.selectedEventId,
-    programs: state.race.programs,
-    selectedProgramId: state.race.selectedProgramId,
   }));
 
   useEffect(() => {
@@ -153,18 +149,12 @@ const Settings: React.FC = () => {
 
   const handleEventChange = useCallback((eventId: number) => {
     dispatch(setSelectedEventId(eventId));
+    dispatch(setSelectedProgramId(null));
     dispatch(setBids([]));
     dispatch(setStages([]));
     dispatch(setSelectedStageId(null));
     loadProgramsHandle(eventId);
   }, [loadProgramsHandle, dispatch]);
-
-  const handleProgramChange = useCallback((programId: number) => {
-    dispatch(setSelectedProgramId(programId));
-    dispatch(setSelectedStageId(null));
-    dispatch(setBids([]));
-    dispatch(setStages([]));
-  }, [dispatch]);
 
   return (
     <div className={classes.root}>
@@ -270,10 +260,6 @@ const Settings: React.FC = () => {
             >
               Load Events
             </Button>
-          ) : selectedProgramId ? (
-            <Typography variant="h6">
-              {events.find(e => e.id === selectedEventId)?.name}
-            </Typography>
           ) : (
             <FormControl fullWidth variant="outlined">
               <InputLabel>Event</InputLabel>
@@ -291,26 +277,9 @@ const Settings: React.FC = () => {
             </FormControl>
           )}
         </Grid>
-        {(programsLoading || programs.length > 0) && (
+        {programsLoading && (
           <Grid item xs={12}>
-            {programsLoading ? (
-              <CircularProgress size={24} />
-            ) : (
-              <FormControl fullWidth variant="outlined">
-                <InputLabel>Program</InputLabel>
-                <Select
-                  value={selectedProgramId ?? ""}
-                  onChange={(e) => handleProgramChange(e.target.value as number)}
-                  label="Program"
-                >
-                  {programs.map((program) => (
-                    <MenuItem key={program.id} value={program.id}>
-                      {program.name}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            )}
+            <CircularProgress size={24} />
           </Grid>
         )}
       </Grid>

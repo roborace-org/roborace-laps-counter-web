@@ -28,6 +28,11 @@ export const routes: RouteConfig[] = [
     component: MainPage,
   },
   {
+    path: "/event/:eventId/program/:programId",
+    exact: true,
+    component: MainPage,
+  },
+  {
     path: "/admin",
     exact: true,
     component: adminGuard(AdminPage),

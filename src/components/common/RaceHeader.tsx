@@ -7,6 +7,7 @@ import {
   Typography,
 } from "@material-ui/core";
 import React, { useCallback, useContext, useMemo } from "react";
+import { useHistory } from "react-router-dom";
 import { RealRaceTimeContext } from "../../contexts/RealRaceTimeContext";
 import { msToTime } from "../../helpers/fns";
 import { useAppDispatch, useAppSelector } from "../../store";
@@ -67,17 +68,29 @@ const useStyles = makeStyles((theme: Theme) => ({
 const RaceHeader: React.FC<{ asAdmin?: boolean }> = ({ asAdmin = false }) => {
   const classes = useStyles();
   const dispatch = useAppDispatch();
+  const history = useHistory();
   const realRaceTime = useContext(RealRaceTimeContext);
-  const { status, raceTimeLimit: raceTimeLimitState } = useAppSelector(
+  const { status, raceTimeLimit: raceTimeLimitState, robots, selectedStageId, robotBidMap, socketWsURL } = useAppSelector(
     (state) => ({
       status: state.race.status,
       raceTimeLimit: state.race.raceTimeLimit,
+      robots: state.race.robots,
+      selectedStageId: state.race.selectedStageId,
+      robotBidMap: state.race.robotBidMap,
+      socketWsURL: state.socket.wsURL,
     })
   );
 
   const raceTimeLimit = useMemo(() => {
     return raceTimeLimitState / 60;
   }, [raceTimeLimitState]);
+
+  const getBaseUrl = useCallback(() => {
+    return socketWsURL
+      .replace(/^ws:/, "http:")
+      .replace(/^wss:/, "https:")
+      .replace(/\/ws$/, "");
+  }, [socketWsURL]);
 
   const statusHandle = useCallback(
     (state: string) => () => {
@@ -90,6 +103,38 @@ const RaceHeader: React.FC<{ asAdmin?: boolean }> = ({ asAdmin = false }) => {
     },
     [dispatch]
   );
+
+  const addResultsHandle = useCallback(async () => {
+    if (!selectedStageId) return;
+    
+    const baseUrl = getBaseUrl();
+    
+    for (const robot of robots) {
+      const bidId = robotBidMap[robot.name];
+      if (!bidId) {
+        console.error(`No bidId found for robot ${robot.name}`);
+        continue;
+      }
+      try {
+        await fetch(`${baseUrl}/robofinist/results`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            stageId: selectedStageId,
+            bidId,
+            number: 1,
+            laps: robot.laps,
+            time: robot.time / 1000,
+            disqualified: false,
+          }),
+        });
+      } catch (error) {
+        console.error(`Failed to add result for ${robot.name}:`, error);
+      }
+    }
+    
+    history.push('/program');
+  }, [selectedStageId, robots, robotBidMap, getBaseUrl, history]);
 
   const command = useMemo(() => {
     switch (status) {
@@ -157,6 +202,17 @@ const RaceHeader: React.FC<{ asAdmin?: boolean }> = ({ asAdmin = false }) => {
                       onClick={statusHandle(command.continue.command)}
                     >
                       {command.continue.label}
+                    </Button>
+                  </Grid>
+                )}
+                {asAdmin && status === RaceStatus.FINISH && selectedStageId && (
+                  <Grid item>
+                    <Button
+                      color="secondary"
+                      variant="contained"
+                      onClick={addResultsHandle}
+                    >
+                      Add Results
                     </Button>
                   </Grid>
                 )}

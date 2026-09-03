@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useState } from "react";
-import { AppBar, Toolbar, Typography } from "@material-ui/core";
+import { AppBar, FormControl, MenuItem, Select, Toolbar, Typography } from "@material-ui/core";
 import { makeStyles } from "@material-ui/styles";
 import PoperMenu, { PoperMenuItem } from "../components/ui/PopperMenu";
 import { RealRaceTimeContext } from "../contexts/RealRaceTimeContext";
@@ -7,7 +7,7 @@ import useRealRaceTime from "../helpers/hook/useRaceTime";
 import SettingsDrawer from "./SettingsDrawer";
 import LoginDrawer from "./LoginDrawer";
 import { useAppDispatch, useAppSelector } from "../store";
-import { setAdmin } from "../store/race/reduser";
+import { setAdmin, setBids, setSelectedProgramId, setSelectedStageId, setStages } from "../store/race/reduser";
 import { Link, useHistory } from "react-router-dom";
 import { IProgram } from "../store/race/interfaces";
 
@@ -28,6 +28,14 @@ const useStyles = makeStyles({
     color: "rgba(0, 0, 0, 0.87)",
     textDecoration: "none",
   },
+  programSelect: {
+    minWidth: 200,
+    marginRight: 16,
+    "& .MuiSelect-select": {
+      paddingTop: 8,
+      paddingBottom: 8,
+    },
+  },
 });
 const MainLayout: React.FC = ({ children }) => {
   const classes = useStyles();
@@ -40,16 +48,21 @@ const MainLayout: React.FC = ({ children }) => {
     selectedProgramId: state.race.selectedProgramId,
   }));
   const dispatch = useAppDispatch();
+  const history = useHistory();
 
-  const selectedProgram = useMemo(() => {
-    return programs.find((p: IProgram) => p.id === selectedProgramId);
-  }, [programs, selectedProgramId]);
+  const handleProgramChange = useCallback((programId: number | null) => {
+    dispatch(setSelectedProgramId(programId));
+    dispatch(setSelectedStageId(null));
+    dispatch(setBids([]));
+    dispatch(setStages([]));
+    if (programId !== null) {
+      history.push('/program');
+    }
+  }, [dispatch, history]);
 
   const logoutHandle = useCallback(() => {
     dispatch(setAdmin(false));
   }, [dispatch]);
-
-  const history = useHistory();
   const menuItems: PoperMenuItem[] = useMemo(() => {
     const menu = [
       {
@@ -94,10 +107,27 @@ const MainLayout: React.FC = ({ children }) => {
               <Link to="/" className={classes.logo}>
                 <Typography variant="h4">
                   Roborace Laps Counter
-                  {selectedProgram && ` — ${selectedProgram.name}`}
                 </Typography>
               </Link>
             </div>
+            {programs.length > 0 && (
+              <FormControl variant="outlined" className={classes.programSelect}>
+                <Select
+                  value={selectedProgramId ?? ""}
+                  onChange={(e) => handleProgramChange(e.target.value === "" ? null : e.target.value as number)}
+                  displayEmpty
+                >
+                  <MenuItem value="">
+                    <em>Select Program</em>
+                  </MenuItem>
+                  {programs.map((program: IProgram) => (
+                    <MenuItem key={program.id} value={program.id}>
+                      {program.name}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            )}
             <PoperMenu items={menuItems} />
           </Toolbar>
         </AppBar>
