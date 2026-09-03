@@ -77,4 +77,5 @@ export interface IRaceState {
   bids: IBid[];
   stages: IStage[];
   selectedStageId: number | null;
+  pendingLapsQueue: Record<number, { delta: number; time: number; addedAt: number }[]>; // serial -> queue of pending changes
 }

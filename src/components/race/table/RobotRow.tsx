@@ -1,14 +1,18 @@
 import { Button, Grid, makeStyles } from "@material-ui/core";
+import { Schedule } from "@material-ui/icons";
 import clsx from "clsx";
-import React, { useCallback, useContext, useMemo } from "react";
+import React, { useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { RealRaceTimeContext } from "../../../contexts/RealRaceTimeContext";
 import { getColorsByPlace, msToTime } from "../../../helpers/fns";
 import { useAppDispatch, useAppSelector } from "../../../store";
 import { IRobot, RaceStatus } from "../../../store/race/interfaces";
-import { sendMessage } from "../../../store/socket/thunks";
+import { addPendingLaps } from "../../../store/race/reduser";
+import { queueLapManMessage, sendMessage } from "../../../store/socket/thunks";
 import RobotIcon from "../../common/RobotIcon";
-import RobotTime from "../../common/RobotTime";
+import RobotTimeDisplay from "../../common/RobotTime";
 import { TUseTableStyles } from "./style";
+
+const PENDING_DISPLAY_DELAY = 1000;
 
 interface IRobotRowProps {
   robot: IRobot;
@@ -36,6 +40,29 @@ const useStyles = makeStyles({
   remove: {
     backgroundColor: "#f500571a",
   },
+  lapsContainer: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 4,
+  },
+  serverLaps: {
+    fontSize: "0.75em",
+    opacity: 0.6,
+  },
+  pendingIcon: {
+    fontSize: 18,
+    color: "#ff9800",
+    animation: "$spin 1.5s linear infinite",
+  },
+  "@keyframes spin": {
+    "0%": {
+      transform: "rotate(0deg)",
+    },
+    "100%": {
+      transform: "rotate(360deg)",
+    },
+  },
 });
 
 const RobotRow: React.FC<IRobotRowProps> = ({
@@ -49,30 +76,54 @@ const RobotRow: React.FC<IRobotRowProps> = ({
     return getColorsByPlace(robot.place);
   }, [robot.place]);
   const raceState = useAppSelector((state) => state.race.status);
+  const pendingQueue = useAppSelector((state) => state.race.pendingLapsQueue[robot.serial] || []);
   const colorClasses = useStyles({ color, bgColor });
   const realRaceTime = useContext(RealRaceTimeContext);
   const hasPitStop =
     robot.pitStopFinishTime && robot.pitStopFinishTime > realRaceTime;
 
+  const pendingLapsDelta = pendingQueue.reduce((sum, item) => sum + item.delta, 0);
+  const displayLaps = robot.laps + pendingLapsDelta;
+  const hasPendingLaps = pendingQueue.length > 0;
+  const displayTime = hasPendingLaps ? pendingQueue[pendingQueue.length - 1].time : robot.time;
+  const oldestPendingAt = hasPendingLaps ? pendingQueue[0].addedAt : null;
+
+  const [showPendingUI, setShowPendingUI] = useState(false);
+
+  useEffect(() => {
+    if (!hasPendingLaps) {
+      setShowPendingUI(false);
+      return;
+    }
+
+    const elapsed = Date.now() - (oldestPendingAt || Date.now());
+    if (elapsed >= PENDING_DISPLAY_DELAY) {
+      setShowPendingUI(true);
+    } else {
+      const timer = setTimeout(() => {
+        setShowPendingUI(true);
+      }, PENDING_DISPLAY_DELAY - elapsed);
+      return () => clearTimeout(timer);
+    }
+  }, [hasPendingLaps, oldestPendingAt]);
+
   const addLap = useCallback(() => {
-    dispatch(
-      sendMessage({
-        serial: robot.serial,
-        type: "LAP_MAN",
-        laps: 1,
-      })
-    );
-  }, [robot.serial, dispatch]);
+    dispatch(addPendingLaps({ serial: robot.serial, delta: 1, time: realRaceTime }));
+    queueLapManMessage({
+      serial: robot.serial,
+      type: "LAP_MAN",
+      laps: 1,
+    });
+  }, [robot.serial, dispatch, realRaceTime]);
 
   const removeLap = useCallback(() => {
-    dispatch(
-      sendMessage({
-        serial: robot.serial,
-        type: "LAP_MAN",
-        laps: -1,
-      })
-    );
-  }, [robot.serial, dispatch]);
+    dispatch(addPendingLaps({ serial: robot.serial, delta: -1, time: realRaceTime }));
+    queueLapManMessage({
+      serial: robot.serial,
+      type: "LAP_MAN",
+      laps: -1,
+    });
+  }, [robot.serial, dispatch, realRaceTime]);
 
   const pitStop = useCallback(() => {
     dispatch(
@@ -147,12 +198,18 @@ const RobotRow: React.FC<IRobotRowProps> = ({
         </div>
       )}
       <div className={clsx(classes.cell, classes.laps)}>
-        <div className={clsx(classes.cellValue, classes.cellValueCenter)}>
-          {robot.laps}
+        <div className={clsx(classes.cellValue, classes.cellValueCenter, colorClasses.lapsContainer)}>
+          {displayLaps}
+          {showPendingUI && (
+            <>
+              <span className={colorClasses.serverLaps}>({robot.laps})</span>
+              <Schedule className={colorClasses.pendingIcon} />
+            </>
+          )}
         </div>
       </div>
       <div className={clsx(classes.cell, classes.time)}>
-        <RobotTime robot={robot} />
+        <RobotTimeDisplay robot={robot} pendingTime={displayTime} hasPending={showPendingUI} />
       </div>
 
       {showTime && (

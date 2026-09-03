@@ -15,6 +15,7 @@ const initialState: IRaceState = {
   bids: [],
   stages: [],
   selectedStageId: null,
+  pendingLapsQueue: {},
 };
 
 const receSlice = createSlice({
@@ -42,6 +43,26 @@ const receSlice = createSlice({
       } else {
         robots[indexRobot] = robot;
       }
+      // Remove first pending delta when server confirms (FIFO)
+      const queue = state.pendingLapsQueue[robot.serial];
+      if (queue && queue.length > 0) {
+        queue.shift();
+        if (queue.length === 0) {
+          delete state.pendingLapsQueue[robot.serial];
+        }
+      }
+    },
+
+    addPendingLaps: (state, action: PayloadAction<{ serial: number; delta: number; time: number }>) => {
+      const { serial, delta, time } = action.payload;
+      if (!state.pendingLapsQueue[serial]) {
+        state.pendingLapsQueue[serial] = [];
+      }
+      state.pendingLapsQueue[serial].push({ delta, time, addedAt: Date.now() });
+    },
+
+    clearPendingLaps: (state, action: PayloadAction<number>) => {
+      delete state.pendingLapsQueue[action.payload];
     },
 
     removeRobot: (state, action: PayloadAction<IRobot["serial"]>) => {
@@ -109,6 +130,8 @@ export const {
   raceTime,
   raceTimeLimit,
   raceRobot,
+  addPendingLaps,
+  clearPendingLaps,
   removeRobot,
   clearRobots,
   setAdmin,

@@ -11,14 +11,71 @@ import { socketConnect } from "./reduser";
 import socket from "./socket";
 
 let publicSocket!: WebSocket;
+let reconnectTimeout: ReturnType<typeof setTimeout> | null = null;
+let currentWsURL = "";
+let dispatchRef: AppDispatch | null = null;
+
+const RECONNECT_DELAY = 3000;
+
+// Queue for LAP_MAN messages
+interface QueuedLapMessage {
+  data: Record<string, unknown>;
+}
+const lapManQueue: QueuedLapMessage[] = [];
+let isWaitingForLapResponse = false;
+
+const processLapManQueue = () => {
+  if (isWaitingForLapResponse || lapManQueue.length === 0) {
+    return;
+  }
+  
+  const nextMessage = lapManQueue.shift();
+  if (nextMessage) {
+    isWaitingForLapResponse = true;
+    publicSocket.send(JSON.stringify(nextMessage.data));
+  }
+};
+
+const onLapResponseReceived = () => {
+  isWaitingForLapResponse = false;
+  processLapManQueue();
+};
+
+export const queueLapManMessage = (data: Record<string, unknown>) => {
+  lapManQueue.push({ data });
+  processLapManQueue();
+};
+
+const scheduleReconnect = () => {
+  if (reconnectTimeout) {
+    clearTimeout(reconnectTimeout);
+  }
+  reconnectTimeout = setTimeout(() => {
+    if (dispatchRef && currentWsURL) {
+      dispatchRef(connectSocket(currentWsURL));
+    }
+  }, RECONNECT_DELAY);
+};
 
 export const disconnectSocket = () => {
+  if (reconnectTimeout) {
+    clearTimeout(reconnectTimeout);
+    reconnectTimeout = null;
+  }
   socket.disconnect();
 };
 
 export const connectSocket =
   (wsURL: string): AppThunk =>
   (dispatch) => {
+    currentWsURL = wsURL;
+    dispatchRef = dispatch;
+    
+    if (reconnectTimeout) {
+      clearTimeout(reconnectTimeout);
+      reconnectTimeout = null;
+    }
+    
     socket.disconnect();
     publicSocket = socket.connect(wsURL);
 
@@ -26,10 +83,13 @@ export const connectSocket =
       publicSocket.send(JSON.stringify({ type: "LAPS" }));
       dispatch(socketConnect(SocketStatus.Connected));
     };
-    publicSocket.onclose = () =>
+    publicSocket.onclose = () => {
       dispatch(socketConnect(SocketStatus.Disconnected));
-    publicSocket.onerror = () =>
+      scheduleReconnect();
+    };
+    publicSocket.onerror = () => {
       dispatch(socketConnect(SocketStatus.Disconnected));
+    };
 
     publicSocket.onmessage = (messageEvent: MessageEvent) => {
       const message: SocketMessage = JSON.parse(messageEvent.data);
@@ -128,6 +188,7 @@ const onMessage = (message: SocketMessage, dispatch: AppDispatch) => {
     case MessageType.LAP: {
       const { type, ...robot } = message;
       dispatch(raceRobot(robot));
+      onLapResponseReceived();
       break;
     }
     case MessageType.ROBOT_REMOVE: {

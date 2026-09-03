@@ -1,11 +1,7 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import {
-  Box,
-  Container,
   CssBaseline,
-  Grid,
   ThemeProvider,
-  Typography,
 } from "@material-ui/core";
 import "@fontsource/roboto/300.css";
 import "@fontsource/roboto/400.css";
@@ -25,6 +21,12 @@ function App(): JSX.Element {
   const connected = useAppSelector(
     (state) => state.socket.status === SocketStatus.Connected
   );
+  const hasRobots = useAppSelector((state) => state.race.robots.length > 0);
+  const hasEverConnected = useRef(false);
+
+  if (connected) {
+    hasEverConnected.current = true;
+  }
 
   const wsURL = useAppSelector((state) => state.socket.wsURL);
   useEffect(() => {
@@ -32,24 +34,15 @@ function App(): JSX.Element {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dispatch]);
 
+  const showContent = connected || hasEverConnected.current || hasRobots;
+
   return (
     <>
       <CssBaseline />
       <ThemeProvider theme={baseTheme}>
         <HashRouter>
           <MainLayout>
-            {!connected && (
-              <Container>
-                <Box mt={3}>
-                  <Grid container justifyContent="center">
-                    <Grid item>
-                      <Typography variant="h2">Not connected</Typography>
-                    </Grid>
-                  </Grid>
-                </Box>
-              </Container>
-            )}
-            {connected && renderRoutes(routes)}
+            {showContent && renderRoutes(routes)}
           </MainLayout>
         </HashRouter>
       </ThemeProvider>

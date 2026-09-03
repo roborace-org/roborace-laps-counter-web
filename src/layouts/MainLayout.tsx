@@ -10,6 +10,7 @@ import { useAppDispatch, useAppSelector } from "../store";
 import { setAdmin, setBids, setSelectedProgramId, setSelectedStageId, setStages } from "../store/race/reduser";
 import { Link, useHistory } from "react-router-dom";
 import { IProgram } from "../store/race/interfaces";
+import { SocketStatus } from "../store/socket/interfaces";
 
 const useStyles = makeStyles({
   root: {
@@ -20,6 +21,9 @@ const useStyles = makeStyles({
   },
   flexGrow: {
     flexGrow: 1,
+    display: "flex",
+    alignItems: "center",
+    gap: 12,
   },
   main: {
     flexGrow: 1,
@@ -36,17 +40,45 @@ const useStyles = makeStyles({
       paddingBottom: 8,
     },
   },
+  connectionIndicator: {
+    width: 14,
+    height: 14,
+    borderRadius: "50%",
+    flexShrink: 0,
+  },
+  connected: {
+    backgroundColor: "#4caf50",
+    boxShadow: "0 0 6px #4caf50",
+  },
+  disconnected: {
+    backgroundColor: "#f44336",
+    boxShadow: "0 0 6px #f44336",
+    animation: "$pulse 1.5s ease-in-out infinite",
+  },
+  "@keyframes pulse": {
+    "0%": {
+      opacity: 1,
+    },
+    "50%": {
+      opacity: 0.4,
+    },
+    "100%": {
+      opacity: 1,
+    },
+  },
 });
 const MainLayout: React.FC = ({ children }) => {
   const classes = useStyles();
   const [openSettings, setOpenSettings] = useState<boolean>(false);
   const [openLogin, setOpenLogin] = useState<boolean>(false);
   const realRaceTime = useRealRaceTime();
-  const { isAdmin, programs, selectedProgramId } = useAppSelector((state) => ({
+  const { isAdmin, programs, selectedProgramId, socketStatus } = useAppSelector((state) => ({
     isAdmin: state.race.isAdmin,
     programs: state.race.programs,
     selectedProgramId: state.race.selectedProgramId,
+    socketStatus: state.socket.status,
   }));
+  const isConnected = socketStatus === SocketStatus.Connected;
   const dispatch = useAppDispatch();
   const history = useHistory();
 
@@ -109,6 +141,12 @@ const MainLayout: React.FC = ({ children }) => {
                   Roborace Laps Counter
                 </Typography>
               </Link>
+              <div
+                className={`${classes.connectionIndicator} ${
+                  isConnected ? classes.connected : classes.disconnected
+                }`}
+                title={isConnected ? "Connected" : "Disconnected - reconnecting..."}
+              />
             </div>
             {programs.length > 0 && (
               <FormControl variant="outlined" className={classes.programSelect}>
